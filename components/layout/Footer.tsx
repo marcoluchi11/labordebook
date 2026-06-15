@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pb-8 border-b border-gray-200">
 
           <div>
-            <p className="font-semibold text-gray-900 text-sm">Librería</p>
+            <p className="font-semibold text-gray-900 text-sm tracking-wide uppercase">Laborde Editorial</p>
             <p className="text-gray-500 text-sm mt-1 leading-relaxed">
               Ebooks con acceso inmediato.<br />
               Comprá, pagá y leé en minutos.
@@ -41,7 +41,7 @@ export function Footer() {
 
         </div>
         <p className="text-xs text-gray-400 pt-6 text-center">
-          © 2025 Librería · Todos los derechos reservados
+          © 2025 Laborde Editorial · Todos los derechos reservados
         </p>
       </div>
     </footer>

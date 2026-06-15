@@ -20,12 +20,7 @@ export default async function HomePage() {
     .order('created_at', { ascending: false })
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-12">
-      <header className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900">Librería</h1>
-        <p className="text-gray-500 mt-2">Ebooks disponibles para compra y lectura inmediata.</p>
-      </header>
-
+    <main className="max-w-5xl mx-auto px-4 py-10">
       <BookGrid books={books ?? []} />
 
       <section id="como-funciona" className="mt-16 bg-gray-50 rounded-2xl px-6 py-8">
