@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
+import { Book } from '@/components/ui/book'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -36,14 +36,14 @@ export default async function BookPage({ params }: Props) {
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-10">
-        <div className="aspect-[2/3] relative rounded-lg overflow-hidden bg-gray-100 shadow-md">
-          {book.cover_url ? (
-            <Image src={book.cover_url} alt={book.title} fill className="object-cover" />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900 flex items-end p-4">
-              <span className="text-white font-semibold">{book.title}</span>
-            </div>
-          )}
+        <div className="flex justify-center md:justify-start">
+          <Book
+            title={book.title}
+            author={book.author}
+            coverUrl={book.cover_url ?? undefined}
+            variant={book.cover_url ? 'simple' : 'stripe'}
+            width={240}
+          />
         </div>
 
         <div>
