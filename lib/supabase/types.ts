@@ -77,6 +77,9 @@ export interface Database {
           user_agent: string | null
           created_at: string
           confirmed_at: string | null
+          is_gift: boolean
+          recipient_email: string | null
+          recipient_name: string | null
         }
         Insert: {
           id?: string
@@ -91,6 +94,9 @@ export interface Database {
           user_agent?: string | null
           created_at?: string
           confirmed_at?: string | null
+          is_gift?: boolean
+          recipient_email?: string | null
+          recipient_name?: string | null
         }
         Update: {
           id?: string
@@ -105,6 +111,9 @@ export interface Database {
           user_agent?: string | null
           created_at?: string
           confirmed_at?: string | null
+          is_gift?: boolean
+          recipient_email?: string | null
+          recipient_name?: string | null
         }
         Relationships: [
           {

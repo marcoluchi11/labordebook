@@ -8,6 +8,9 @@ const schema = z.object({
   bookId: z.string().uuid(),
   buyerName: z.string().min(2).max(100),
   buyerEmail: z.string().email(),
+  isGift: z.boolean().optional().default(false),
+  recipientEmail: z.string().email().optional(),
+  recipientName: z.string().min(2).max(100).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
   }
 
-  const { bookId, buyerName, buyerEmail } = parsed.data
+  const { bookId, buyerName, buyerEmail, isGift, recipientEmail, recipientName } = parsed.data
   const supabase = createServiceRoleClient()
 
   // Fetch book
@@ -51,6 +54,9 @@ export async function POST(request: NextRequest) {
       amount_paid: book.price,
       ip_address: ip,
       user_agent: request.headers.get('user-agent'),
+      is_gift: isGift,
+      recipient_email: isGift ? recipientEmail : null,
+      recipient_name: isGift ? recipientName : null,
     })
     .select('id')
     .single()

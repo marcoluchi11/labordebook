@@ -3,6 +3,7 @@ import { Roboto } from 'next/font/google'
 import './globals.css'
 import { CartProvider } from '@/components/cart/CartContext'
 import { CartFab } from '@/components/cart/CartFab'
+import { Footer } from '@/components/layout/Footer'
 
 const roboto = Roboto({ subsets: ['latin'], weight: ['400', '500', '700'] })
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-white text-gray-900">
         <CartProvider>
           {children}
+          <Footer />
           <CartFab />
         </CartProvider>
       </body>

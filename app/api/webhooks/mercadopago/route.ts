@@ -3,7 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 import { mpPayment } from '@/lib/mercadopago/client'
 import { verifyMPSignature } from '@/lib/mercadopago/webhook'
 import { createToken } from '@/lib/tokens'
-import { sendPurchaseConfirmationEmail } from '@/lib/email'
+import { sendPurchaseConfirmationEmail, sendGiftSentConfirmationEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
   const { data: purchases } = await supabase
     .from('purchases')
-    .select('id, payment_status, book_id, buyer_name, buyer_email')
+    .select('id, payment_status, book_id, buyer_name, buyer_email, is_gift, recipient_email, recipient_name')
     .in('id', purchaseIds)
 
   if (!purchases || purchases.length === 0) return NextResponse.json({ ok: true })
@@ -97,17 +97,43 @@ export async function POST(request: NextRequest) {
         book.epub_path ? createToken(purchase.id, 'epub') : Promise.resolve(null),
       ])
 
-      await sendPurchaseConfirmationEmail({
-        buyerEmail: purchase.buyer_email,
-        buyerName: purchase.buyer_name,
-        bookTitle: book.title,
-        bookCoverUrl: book.cover_url,
-        purchaseId: purchase.id,
-        viewerToken,
-        pdfToken,
-        epubToken,
-        bookId: book.id,
-      })
+      if (purchase.is_gift && purchase.recipient_email && purchase.recipient_name) {
+        // Gift: send access to recipient, confirmation to buyer
+        await Promise.all([
+          sendPurchaseConfirmationEmail({
+            buyerEmail: purchase.recipient_email,
+            buyerName: purchase.recipient_name,
+            bookTitle: book.title,
+            bookCoverUrl: book.cover_url,
+            purchaseId: purchase.id,
+            viewerToken,
+            pdfToken,
+            epubToken,
+            bookId: book.id,
+            isGift: true,
+          }),
+          sendGiftSentConfirmationEmail({
+            buyerEmail: purchase.buyer_email,
+            buyerName: purchase.buyer_name,
+            recipientEmail: purchase.recipient_email,
+            recipientName: purchase.recipient_name,
+            bookTitle: book.title,
+            bookCoverUrl: book.cover_url,
+          }),
+        ])
+      } else {
+        await sendPurchaseConfirmationEmail({
+          buyerEmail: purchase.buyer_email,
+          buyerName: purchase.buyer_name,
+          bookTitle: book.title,
+          bookCoverUrl: book.cover_url,
+          purchaseId: purchase.id,
+          viewerToken,
+          pdfToken,
+          epubToken,
+          bookId: book.id,
+        })
+      }
     })
   )
 

@@ -24,6 +24,20 @@ const demoBooks = [
     price: 1800,
   },
   {
+    id: '6',
+    title: 'El arte de la guerra',
+    author: 'Sun Tzu',
+    coverUrl: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=320&h=480&fit=crop&auto=format',
+    price: 800,
+  },
+  {
+    id: '7',
+    title: 'Atomic Habits',
+    author: 'James Clear',
+    coverUrl: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=320&h=480&fit=crop&auto=format',
+    price: 2000,
+  },
+  {
     id: '4',
     title: 'Introducción a la Programación Funcional',
     author: 'Marco García',
@@ -36,6 +50,27 @@ const demoBooks = [
     author: 'Ana Morales',
     coverUrl: null,
     price: 1100,
+  },
+  {
+    id: '8',
+    title: 'Economía para el Siglo XXI',
+    author: 'Roberto Silva',
+    coverUrl: null,
+    price: 1400,
+  },
+  {
+    id: '9',
+    title: 'Mindfulness y Neurociencia',
+    author: 'Carla Benítez',
+    coverUrl: null,
+    price: 950,
+  },
+  {
+    id: '10',
+    title: 'Física Cuántica sin Matemática',
+    author: 'Diego Fontana',
+    coverUrl: null,
+    price: 1300,
   },
 ]
 

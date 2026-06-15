@@ -14,15 +14,20 @@ export interface SendConfirmationEmailParams {
   pdfToken: string
   epubToken: string | null
   bookId: string
+  isGift?: boolean
 }
 
 export async function sendPurchaseConfirmationEmail(params: SendConfirmationEmailParams) {
-  const { buyerEmail, buyerName, bookTitle, bookCoverUrl, purchaseId, viewerToken, pdfToken, epubToken, bookId } = params
+  const { buyerEmail, buyerName, bookTitle, bookCoverUrl, purchaseId, viewerToken, pdfToken, epubToken, bookId, isGift } = params
 
   const viewerUrl = `${APP_URL}/access?t=${viewerToken}&b=${bookId}&f=viewer`
   const pdfUrl = `${APP_URL}/access?t=${pdfToken}&b=${bookId}&f=pdf`
   const epubUrl = epubToken ? `${APP_URL}/access?t=${epubToken}&b=${bookId}&f=epub` : null
   const shortPurchaseId = purchaseId.slice(-8).toUpperCase()
+
+  const greeting = isGift
+    ? `¡Alguien te regaló un libro, ${buyerName.split(' ')[0]}!`
+    : `Tu libro está listo, ${buyerName.split(' ')[0]}`
 
   const html = `
 <!DOCTYPE html>
@@ -30,13 +35,13 @@ export async function sendPurchaseConfirmationEmail(params: SendConfirmationEmai
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tu libro está listo</title>
+  <title>${greeting}</title>
 </head>
 <body style="font-family: Georgia, serif; background: #fafafa; margin: 0; padding: 24px;">
   <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
     ${bookCoverUrl ? `<img src="${bookCoverUrl}" alt="${bookTitle}" style="width: 100%; height: 220px; object-fit: cover;">` : ''}
     <div style="padding: 32px;">
-      <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">Tu libro está listo, ${buyerName.split(' ')[0]}</h1>
+      <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">${greeting}</h1>
       <p style="color: #555; margin: 0 0 24px; font-size: 15px;">${bookTitle}</p>
 
       <a href="${viewerUrl}" style="display: block; background: #111; color: #fff; text-align: center; padding: 14px 24px; border-radius: 6px; text-decoration: none; font-size: 15px; margin-bottom: 12px;">
@@ -64,7 +69,55 @@ export async function sendPurchaseConfirmationEmail(params: SendConfirmationEmai
   await resend.emails.send({
     from: FROM,
     to: buyerEmail,
-    subject: `Tu libro está listo — ${bookTitle}`,
+    subject: isGift ? `¡Te regalaron "${bookTitle}"!` : `Tu libro está listo — ${bookTitle}`,
+    html,
+  })
+}
+
+export interface SendGiftConfirmationParams {
+  buyerEmail: string
+  buyerName: string
+  recipientEmail: string
+  recipientName: string
+  bookTitle: string
+  bookCoverUrl: string | null
+}
+
+export async function sendGiftSentConfirmationEmail(params: SendGiftConfirmationParams) {
+  const { buyerEmail, buyerName, recipientEmail, recipientName, bookTitle, bookCoverUrl } = params
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu regalo fue enviado</title>
+</head>
+<body style="font-family: Georgia, serif; background: #fafafa; margin: 0; padding: 24px;">
+  <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+    ${bookCoverUrl ? `<img src="${bookCoverUrl}" alt="${bookTitle}" style="width: 100%; height: 180px; object-fit: cover;">` : ''}
+    <div style="padding: 32px;">
+      <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">🎁 Tu regalo fue enviado</h1>
+      <p style="color: #555; margin: 0 0 16px; font-size: 15px;">
+        Hola ${buyerName.split(' ')[0]}, tu regalo llegó exitosamente.
+      </p>
+      <div style="background: #f9f9f9; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <p style="margin: 0 0 6px; font-size: 14px; color: #333;"><strong>Libro:</strong> ${bookTitle}</p>
+        <p style="margin: 0; font-size: 14px; color: #333;"><strong>Enviado a:</strong> ${recipientName} (${recipientEmail})</p>
+      </div>
+      <p style="color: #888; font-size: 13px; line-height: 1.6;">
+        ${recipientName.split(' ')[0]} recibirá un email en <strong>${recipientEmail}</strong> con los links para leer y descargar el libro.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  await resend.emails.send({
+    from: FROM,
+    to: buyerEmail,
+    subject: `Tu regalo de "${bookTitle}" fue enviado a ${recipientName}`,
     html,
   })
 }
