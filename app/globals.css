@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-amber-600: var(--ds-amber-600);
+  --color-gray-200: var(--ds-gray-200);
+  --color-gray-1000: var(--ds-gray-1000);
+  --color-gray-alpha-400: var(--ds-gray-alpha-400);
+  --color-background-200: var(--ds-background-200);
+  --shadow-book: var(--ds-shadow-book);
+  --shadow-book-border: var(--ds-shadow-book-border);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --ds-amber-600: oklch(80.25% 0.1953 73.59);
+    --ds-gray-200: hsla(0, 0%, 92%, 1);
+    --ds-gray-1000: hsla(0, 0%, 9%, 1);
+    --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
+    --ds-background-200: hsla(0, 0%, 98%, 1);
+    --ds-book-bind: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0) 12%,
+        rgba(255, 255, 255, 0.25) 29.25%,
+        rgba(255, 255, 255, 0) 50.5%,
+        rgba(255, 255, 255, 0) 75.25%,
+        rgba(255, 255, 255, 0.25) 91%,
+        rgba(255, 255, 255, 0)
+      ),
+      linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.03),
+        rgba(0, 0, 0, 0.1) 12%,
+        rgba(0, 0, 0, 0) 30%,
+        rgba(0, 0, 0, 0.02) 50%,
+        rgba(0, 0, 0, 0.2) 73.5%,
+        rgba(0, 0, 0, 0.5) 75.25%,
+        rgba(0, 0, 0, 0.15) 85.25%,
+        rgba(0, 0, 0, 0)
+      );
+    --ds-shadow-book: 0 1px 1px 0 rgba(0, 0, 0, 0.02), 0 4px 8px -4px rgba(0, 0, 0, 0.1),
+      0 16px 24px -8px rgba(0, 0, 0, 0.03);
+    --ds-shadow-book-border: inset 0 1px 2px 0 rgba(255, 255, 255, 0.3);
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff;
+  color: #171717;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+.bg-book-gradient {
+  background: linear-gradient(to bottom, var(--ds-background-200), var(--ds-gray-200));
+}
+
+.book-rotate {
+  transition: transform 250ms ease;
+}
+.book-rotate:hover {
+  transform: rotateY(-15deg);
 }
