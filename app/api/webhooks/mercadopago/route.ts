@@ -30,77 +30,86 @@ export async function POST(request: NextRequest) {
   const payment = await mpPayment.get({ id: paymentId })
 
   if (payment.status !== 'approved') {
-    // Update purchase status if rejected
     if (payment.status === 'rejected' && payment.external_reference) {
+      const rejectedIds = payment.external_reference.split(',').filter(Boolean)
       const supabase = createServiceRoleClient()
       await supabase
         .from('purchases')
         .update({ payment_status: 'rejected', payment_id: paymentId })
-        .eq('id', payment.external_reference)
+        .in('id', rejectedIds)
         .eq('payment_status', 'pending')
     }
     return NextResponse.json({ ok: true })
   }
 
-  const purchaseId = payment.external_reference
-  if (!purchaseId) return NextResponse.json({ ok: true })
+  const externalRef = payment.external_reference
+  if (!externalRef) return NextResponse.json({ ok: true })
+
+  // Support both single purchase (legacy) and multi-purchase (cart checkout)
+  const purchaseIds = externalRef.split(',').filter(Boolean)
 
   const supabase = createServiceRoleClient()
 
-  // Idempotency check — prevent duplicate processing
-  const { data: existing } = await supabase
+  const { data: purchases } = await supabase
     .from('purchases')
     .select('id, payment_status, book_id, buyer_name, buyer_email')
-    .eq('id', purchaseId)
-    .single()
+    .in('id', purchaseIds)
 
-  if (!existing) return NextResponse.json({ ok: true })
-  if (existing.payment_status === 'approved') return NextResponse.json({ ok: true })
+  if (!purchases || purchases.length === 0) return NextResponse.json({ ok: true })
 
-  // Confirm the purchase
+  // Idempotency: skip if all are already approved
+  const pending = purchases.filter(p => p.payment_status !== 'approved')
+  if (pending.length === 0) return NextResponse.json({ ok: true })
+
+  // Confirm all pending purchases
+  const confirmedAt = new Date().toISOString()
   const { error: updateError } = await supabase
     .from('purchases')
     .update({
       payment_status: 'approved',
       payment_id: paymentId,
-      confirmed_at: new Date().toISOString(),
-      amount_paid: payment.transaction_amount,
+      confirmed_at: confirmedAt,
+      amount_paid: payment.transaction_amount
+        ? Number(payment.transaction_amount) / pending.length
+        : null,
     })
-    .eq('id', purchaseId)
+    .in('id', pending.map(p => p.id))
 
   if (updateError) {
-    console.error('Failed to update purchase', updateError)
+    console.error('Failed to update purchases', updateError)
     return NextResponse.json({ ok: true })
   }
 
-  // Fetch book for email
-  const { data: book } = await supabase
-    .from('books')
-    .select('id, title, cover_url, epub_path')
-    .eq('id', existing.book_id)
-    .single()
+  // Create tokens and send email for each purchase
+  await Promise.all(
+    pending.map(async (purchase) => {
+      const { data: book } = await supabase
+        .from('books')
+        .select('id, title, cover_url, epub_path')
+        .eq('id', purchase.book_id)
+        .single()
 
-  if (!book) return NextResponse.json({ ok: true })
+      if (!book) return
 
-  // Create access tokens
-  const [viewerToken, pdfToken, epubToken] = await Promise.all([
-    createToken(purchaseId, 'viewer'),
-    createToken(purchaseId, 'pdf'),
-    book.epub_path ? createToken(purchaseId, 'epub') : Promise.resolve(null),
-  ])
+      const [viewerToken, pdfToken, epubToken] = await Promise.all([
+        createToken(purchase.id, 'viewer'),
+        createToken(purchase.id, 'pdf'),
+        book.epub_path ? createToken(purchase.id, 'epub') : Promise.resolve(null),
+      ])
 
-  // Send confirmation email
-  await sendPurchaseConfirmationEmail({
-    buyerEmail: existing.buyer_email,
-    buyerName: existing.buyer_name,
-    bookTitle: book.title,
-    bookCoverUrl: book.cover_url,
-    purchaseId,
-    viewerToken,
-    pdfToken,
-    epubToken,
-    bookId: book.id,
-  })
+      await sendPurchaseConfirmationEmail({
+        buyerEmail: purchase.buyer_email,
+        buyerName: purchase.buyer_name,
+        bookTitle: book.title,
+        bookCoverUrl: book.cover_url,
+        purchaseId: purchase.id,
+        viewerToken,
+        pdfToken,
+        epubToken,
+        bookId: book.id,
+      })
+    })
+  )
 
   return NextResponse.json({ ok: true })
 }

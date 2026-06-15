@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { Book } from '@/components/ui/book'
+import { AddToCartButton } from '@/components/catalog/AddToCartButton'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -74,12 +75,16 @@ export default async function BookPage({ params }: Props) {
             <p className="text-gray-600 mt-6 leading-relaxed">{book.description}</p>
           )}
 
-          <Link
-            href={`/checkout?bookId=${book.id}`}
-            className="mt-8 inline-block bg-gray-900 text-white font-semibold px-8 py-4 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Comprar — ${book.price.toLocaleString('es-AR')}
-          </Link>
+          <AddToCartButton
+            book={{
+              id: book.id,
+              slug: book.slug,
+              title: book.title,
+              author: book.author,
+              price: book.price,
+              coverUrl: book.cover_url,
+            }}
+          />
 
           <p className="text-xs text-gray-400 mt-3">
             Recibirás acceso inmediato por email después del pago.

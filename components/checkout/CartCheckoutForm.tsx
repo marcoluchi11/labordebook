@@ -4,9 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState } from 'react'
-import type { Database } from '@/lib/supabase/types'
-
-type Book = Database['public']['Tables']['books']['Row']
+import { useCart } from '@/components/cart/CartContext'
 
 const schema = z.object({
   name: z.string().min(2, 'Ingresá tu nombre completo'),
@@ -15,13 +13,15 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-interface CheckoutFormProps {
-  book: Book
+interface Props {
+  bookIds: string[]
+  total: number
 }
 
-export function CheckoutForm({ book }: CheckoutFormProps) {
+export function CartCheckoutForm({ bookIds, total }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { clearCart } = useCart()
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -32,10 +32,10 @@ export function CheckoutForm({ book }: CheckoutFormProps) {
     setError(null)
 
     try {
-      const res = await fetch('/api/checkout', {
+      const res = await fetch('/api/checkout/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: book.id, buyerName: data.name, buyerEmail: data.email }),
+        body: JSON.stringify({ bookIds, buyerName: data.name, buyerEmail: data.email }),
       })
 
       const json = await res.json()
@@ -45,6 +45,7 @@ export function CheckoutForm({ book }: CheckoutFormProps) {
         return
       }
 
+      clearCart()
       window.location.assign(json.initPoint)
     } catch {
       setError('Error de conexión. Intentá de nuevo.')
@@ -80,7 +81,7 @@ export function CheckoutForm({ book }: CheckoutFormProps) {
         />
         {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
         <p className="text-xs text-gray-400 mt-1">
-          Te enviaremos el acceso al libro a este email.
+          Te enviaremos el acceso a los libros a este email.
         </p>
       </div>
 
@@ -95,7 +96,7 @@ export function CheckoutForm({ book }: CheckoutFormProps) {
         disabled={loading}
         className="w-full bg-gray-900 text-white font-semibold py-4 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? 'Redirigiendo a MercadoPago...' : `Pagar $${book.price.toLocaleString('es-AR')}`}
+        {loading ? 'Redirigiendo a MercadoPago...' : `Pagar $${total.toLocaleString('es-AR')}`}
       </button>
 
       <p className="text-xs text-center text-gray-400">
