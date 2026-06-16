@@ -20,9 +20,9 @@ export interface SendConfirmationEmailParams {
 export async function sendPurchaseConfirmationEmail(params: SendConfirmationEmailParams) {
   const { buyerEmail, buyerName, bookTitle, bookCoverUrl, purchaseId, viewerToken, pdfToken, epubToken, bookId, isGift } = params
 
-  const viewerUrl = `${APP_URL}/access?t=${viewerToken}&b=${bookId}&f=viewer`
-  const pdfUrl = `${APP_URL}/access?t=${pdfToken}&b=${bookId}&f=pdf`
-  const epubUrl = epubToken ? `${APP_URL}/access?t=${epubToken}&b=${bookId}&f=epub` : null
+  const viewerUrl = `${APP_URL}/api/access?t=${viewerToken}&b=${bookId}&f=viewer`
+  const pdfUrl = `${APP_URL}/api/access?t=${pdfToken}&b=${bookId}&f=pdf`
+  const epubUrl = epubToken ? `${APP_URL}/api/access?t=${epubToken}&b=${bookId}&f=epub` : null
   const shortPurchaseId = purchaseId.slice(-8).toUpperCase()
 
   const greeting = isGift

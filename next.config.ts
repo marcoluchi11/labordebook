@@ -9,7 +9,7 @@ const securityHeaders = [
 
 const viewerCsp = [
   "default-src 'self'",
-  "script-src 'self' https://cdnjs.cloudflare.com",
+  "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "connect-src 'self' https://*.supabase.co",

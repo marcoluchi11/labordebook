@@ -23,9 +23,8 @@ export function PDFViewer({ bookId }: PDFViewerProps) {
     async function loadPdf() {
       try {
         const pdfjsLib = await import('pdfjs-dist')
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
-        // Get short-lived signed URL from our session endpoint
         const res = await fetch(`/api/viewer/${bookId}/session`)
         if (!res.ok) throw new Error('No autorizado')
 
@@ -59,13 +58,16 @@ export function PDFViewer({ bookId }: PDFViewerProps) {
     }
 
     const page = await pdfDoc.getPage(pageNum)
-    const viewport = page.getViewport({ scale })
+    const pixelRatio = window.devicePixelRatio || 1
+    const viewport = page.getViewport({ scale: scale * pixelRatio })
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     canvas.height = viewport.height
     canvas.width = viewport.width
+    canvas.style.width = `${viewport.width / pixelRatio}px`
+    canvas.style.height = `${viewport.height / pixelRatio}px`
 
     const renderContext = { canvasContext: ctx, viewport, canvas: canvas }
     const renderTask = page.render(renderContext)

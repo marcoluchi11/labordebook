@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { PDFViewer } from '@/components/viewer/PDFViewer'
+import { PDFViewerWrapper } from '@/components/viewer/PDFViewerWrapper'
 import { validateViewerCookie } from '@/lib/tokens'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 
@@ -50,7 +50,7 @@ export default async function ReadPage({ params }: Props) {
       </header>
 
       <main className="py-8 px-4">
-        <PDFViewer bookId={bookId} />
+        <PDFViewerWrapper bookId={bookId} />
       </main>
 
       {/* Invisible print blocker */}

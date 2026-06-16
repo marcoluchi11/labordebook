@@ -31,28 +31,39 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Demasiadas descargas. Esperá unos minutos.' }, { status: 429 })
   }
 
-  // Atomically consume the download token
-  let purchaseId: string
-  try {
-    const result = await consumeToken(rawToken, format)
-    purchaseId = result.purchaseId
-  } catch {
+  const supabase = createServiceRoleClient()
+  const tokenHash = hashToken(rawToken)
+  // Validate token and purchase BEFORE consuming — avoids wasting single-use tokens on bad state
+  const { data: tokenRow } = await supabase
+    .from('download_tokens')
+    .select('purchase_id, used_count, max_uses, expires_at, revoked')
+    .eq('token_hash', tokenHash)
+    .eq('format', format)
+    .single()
+
+  const expiredOrInvalid =
+    !tokenRow ||
+    tokenRow.revoked ||
+    tokenRow.used_count >= tokenRow.max_uses ||
+    new Date(tokenRow.expires_at) < new Date()
+
+  if (expiredOrInvalid) {
     return new NextResponse(
       `<html><body style="font-family:sans-serif;text-align:center;padding:40px">
         <h2>Link expirado</h2>
         <p>Este link de descarga ya fue utilizado o expiró.</p>
         <p>Revisá tu email para obtener un nuevo link.</p>
       </body></html>`,
-      { status: 410, headers: { 'Content-Type': 'text/html' } }
+      { status: 410, headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' } }
     )
   }
 
-  const supabase = createServiceRoleClient()
+  const purchaseId = tokenRow.purchase_id
 
-  // Fetch purchase + book info
+  // Fetch purchase and book before consuming token
   const { data: purchase } = await supabase
     .from('purchases')
-    .select('id, buyer_name, buyer_email, confirmed_at, books!inner(id, title, pdf_path, epub_path)')
+    .select('id, buyer_name, buyer_email, confirmed_at, book_id')
     .eq('id', purchaseId)
     .eq('payment_status', 'approved')
     .single()
@@ -61,11 +72,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Compra no encontrada' }, { status: 404 })
   }
 
-  const book = purchase.books as unknown as {
-    id: string
-    title: string
-    pdf_path: string
-    epub_path: string | null
+  const { data: book } = await supabase
+    .from('books')
+    .select('id, title, pdf_path, epub_path')
+    .eq('id', purchase.book_id)
+    .single()
+
+  if (!book) {
+    return NextResponse.json({ error: 'Libro no encontrado' }, { status: 404 })
+  }
+
+  // Now atomically consume the token
+  try {
+    await consumeToken(rawToken, format)
+  } catch {
+    return new NextResponse(
+      `<html><body style="font-family:sans-serif;text-align:center;padding:40px">
+        <h2>Link expirado</h2>
+        <p>Este link de descarga ya fue utilizado o expiró.</p>
+        <p>Revisá tu email para obtener un nuevo link.</p>
+      </body></html>`,
+      { status: 410, headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' } }
+    )
   }
 
   if (format === 'epub' && !book.epub_path) {
