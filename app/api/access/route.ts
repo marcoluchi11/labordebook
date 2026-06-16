@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateViewerCookie } from '@/lib/tokens'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const rawToken = searchParams.get('t')
   const bookId = searchParams.get('b')
   const format = searchParams.get('f')
+
+  // When behind a reverse proxy (ngrok, Vercel, etc.), reconstruct origin from forwarded headers
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'http'
+  const forwardedHost = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
+  const origin = `${forwardedProto}://${forwardedHost}`
 
   if (!rawToken || !bookId || !format) {
     return new NextResponse('Parámetros inválidos', { status: 400 })

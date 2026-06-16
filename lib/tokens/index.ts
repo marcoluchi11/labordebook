@@ -4,7 +4,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 export type TokenFormat = 'viewer' | 'pdf' | 'epub'
 
 const TOKEN_CONFIG: Record<TokenFormat, { maxUses: number; ttlDays: number }> = {
-  viewer: { maxUses: 100, ttlDays: 365 },
+  viewer: { maxUses: 5, ttlDays: 365 },
   pdf:    { maxUses: 1,   ttlDays: 1 },
   epub:   { maxUses: 1,   ttlDays: 1 },
 }
@@ -59,16 +59,15 @@ export async function validateViewerCookie(rawToken: string): Promise<{ purchase
 
   const { data } = await supabase
     .from('download_tokens')
-    .select('purchase_id, used_count, purchases!inner(book_id)')
+    .select('purchase_id, used_count, max_uses, purchases!inner(book_id)')
     .eq('token_hash', hash)
     .eq('format', 'viewer')
     .eq('revoked', false)
     .gt('expires_at', new Date().toISOString())
     .single()
 
-  if (!data) return null
+  if (!data || data.used_count >= data.max_uses) return null
 
-  // Soft increment (viewer access is not strictly single-use)
   await supabase
     .from('download_tokens')
     .update({ used_count: data.used_count + 1, last_used_at: new Date().toISOString() })
