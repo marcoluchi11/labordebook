@@ -79,13 +79,13 @@ export const Book = ({
         >
           {coverUrl ? (
             /* Photo cover: fills entire face */
-            <div className="relative flex-1">
+            <div className="relative flex-1 bg-white">
               <Image
                 src={coverUrl}
                 alt={title}
                 fill
-                className="object-cover"
-                sizes="(max-width: 640px) 130px, 180px"
+                className="object-contain"
+                sizes="(max-width: 640px) 150px, 200px"
               />
               <div
                 className="absolute top-0 left-0 h-full w-[8.2%] mix-blend-overlay z-10"

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export function Footer() {
   return (
@@ -31,11 +32,13 @@ export function Footer() {
 
           <div>
             <p className="font-semibold text-gray-900 text-sm mb-3">Pagos y formatos</p>
-            <p className="text-sm text-gray-500">
-              Pagos seguros con{' '}
-              <span className="font-medium text-gray-700">MercadoPago</span>
-            </p>
-            <p className="text-xs text-gray-400 mt-3 uppercase tracking-wider">Formatos disponibles</p>
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <Image src="/mercadopago-logo.svg" alt="MercadoPago" width={60} height={55} className="h-8 w-auto" />
+              <Image src="/visa-logo.svg" alt="Visa" width={60} height={20} className="h-5 w-auto" />
+              <Image src="/mastercard-logo.svg" alt="Mastercard" width={40} height={40} className="h-8 w-auto" />
+              <Image src="/amex-logo.svg" alt="American Express" width={40} height={40} className="h-8 w-auto" />
+            </div>
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Formatos disponibles</p>
             <p className="text-sm text-gray-500 mt-1">PDF · EPUB</p>
           </div>
 
