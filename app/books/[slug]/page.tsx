@@ -82,7 +82,7 @@ export default async function BookPage({ params }: Props) {
               </div>
               <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
                 <Calendar className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
-                <span className="text-xs text-gray-400 leading-tight">Publicación</span>
+                <span className="text-xs text-gray-400 leading-tight">Fecha de publicación</span>
                 <span className="font-semibold text-gray-900">{meta.publishedYear}</span>
               </div>
             </div>
