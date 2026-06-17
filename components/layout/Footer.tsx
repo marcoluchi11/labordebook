@@ -8,8 +8,11 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pb-8 border-b border-gray-200">
 
           <div>
-            <p className="font-semibold text-gray-900 text-sm tracking-wide uppercase">Laborde Editorial</p>
-            <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+            <div className="flex items-center gap-2 mb-2">
+              <Image src="/logo.png" alt="Laborde Libros" width={32} height={32} className="rounded-sm" />
+              <p className="font-semibold text-gray-900 text-sm tracking-wide uppercase">Laborde Editorial</p>
+            </div>
+            <p className="text-gray-500 text-sm leading-relaxed">
               Ebooks con acceso inmediato.<br />
               Comprá, pagá y leé en minutos.
             </p>
