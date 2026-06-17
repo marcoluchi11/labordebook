@@ -1,11 +1,20 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { Instagram, Facebook, Youtube, Mail, Globe } from 'lucide-react'
+
+const SOCIAL = [
+  { href: 'https://www.instagram.com/laborde.libreriayeditorial/', icon: Instagram, label: 'Instagram' },
+  { href: 'https://www.facebook.com/laborde.libros.editorial', icon: Facebook, label: 'Facebook' },
+  { href: 'https://www.youtube.com/@labordelibreriayeditorial', icon: Youtube, label: 'YouTube' },
+  { href: 'https://labordeeditor.com.ar/', icon: Globe, label: 'Sitio web' },
+  { href: 'mailto:labordelibreriayeditorial@gmail.com', icon: Mail, label: 'labordelibreriayeditorial@gmail.com' },
+]
 
 export function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-gray-50 mt-auto">
       <div className="max-w-5xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pb-8 border-b border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-8 border-b border-gray-200">
 
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -43,6 +52,25 @@ export function Footer() {
             </div>
             <p className="text-xs text-gray-400 uppercase tracking-wider">Formatos disponibles</p>
             <p className="text-sm text-gray-500 mt-1">PDF · EPUB</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-gray-900 text-sm mb-3">Contacto y redes</p>
+            <ul className="space-y-2">
+              {SOCIAL.map(({ href, icon: Icon, label }) => (
+                <li key={href}>
+                  <a
+                    href={href}
+                    target={href.startsWith('mailto') ? undefined : '_blank'}
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors group"
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-gray-700 transition-colors" />
+                    <span className="truncate">{label}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
 
         </div>
