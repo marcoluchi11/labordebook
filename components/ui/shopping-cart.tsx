@@ -39,11 +39,16 @@ export function ShoppingCart({ items, onRemoveItem, onCheckout }: ShoppingCartPr
 
       <CardContent>
         {items.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <ShoppingCartIcon className="h-12 w-12 mx-auto mb-3 opacity-20" />
-            <p className="text-base">Tu carrito está vacío.</p>
-            <Link href="/" className="text-sm text-gray-900 underline underline-offset-2 mt-2 inline-block hover:text-gray-600">
-              Ver catálogo
+          <div className="flex items-center justify-between gap-4 py-6 px-2">
+            <div className="flex items-center gap-5">
+              <ShoppingCartIcon className="h-14 w-14 shrink-0 text-gray-400" strokeWidth={1.25} />
+              <div>
+                <p className="font-semibold text-gray-900 text-base">Tu carrito está vacío</p>
+                <p className="text-sm text-gray-500 mt-0.5">Explorá el catálogo y encontrá tu próximo libro.</p>
+              </div>
+            </div>
+            <Link href="/" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors shrink-0">
+              Ir al catálogo
             </Link>
           </div>
         ) : (
