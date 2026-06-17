@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
   const { error: updateError } = await supabase
     .from('purchases')
-    .update({ payment_status: 'approved', payment_id: 'dev_simulate', confirmed_at: new Date().toISOString() })
+    .update({ payment_status: 'approved', payment_id: `dev_simulate_${Date.now()}`, confirmed_at: new Date().toISOString() })
     .eq('id', purchaseId)
 
   if (updateError) {

@@ -9,16 +9,24 @@ import { useCart } from '@/components/cart/CartContext'
 const schema = z.object({
   name: z.string().min(2, 'Ingresá tu nombre completo'),
   email: z.string().email('Email inválido'),
+  emailConfirm: z.string().email('Email inválido'),
   isGift: z.boolean(),
   recipientName: z.string().optional(),
   recipientEmail: z.string().optional(),
+  recipientEmailConfirm: z.string().optional(),
 }).superRefine((data, ctx) => {
+  if (data.email !== data.emailConfirm) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Los emails no coinciden', path: ['emailConfirm'] })
+  }
   if (data.isGift) {
     if (!data.recipientName || data.recipientName.trim().length < 2) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ingresá el nombre del destinatario', path: ['recipientName'] })
     }
     if (!data.recipientEmail || !z.string().email().safeParse(data.recipientEmail).success) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Email del destinatario inválido', path: ['recipientEmail'] })
+    }
+    if (data.recipientEmail !== data.recipientEmailConfirm) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Los emails no coinciden', path: ['recipientEmailConfirm'] })
     }
   }
 })
@@ -102,11 +110,23 @@ export function CartCheckoutForm({ bookIds, total }: Props) {
           className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
         />
         {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-        {!isGift && (
-          <p className="text-xs text-gray-400 mt-1">
-            Te enviaremos el acceso a los libros a este email.
-          </p>
-        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Confirmá tu email
+        </label>
+        <input
+          {...register('emailConfirm')}
+          type="email"
+          placeholder="juan@gmail.com"
+          onPaste={(e) => e.preventDefault()}
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+        />
+        {errors.emailConfirm
+          ? <p className="text-red-500 text-sm mt-1">{errors.emailConfirm.message}</p>
+          : <p className="text-xs text-gray-400 mt-1">{isGift ? 'Te enviaremos la confirmación a este email.' : 'Te enviaremos el acceso a los libros a este email.'}</p>
+        }
       </div>
 
       {/* Gift toggle */}
@@ -146,9 +166,22 @@ export function CartCheckoutForm({ bookIds, total }: Props) {
               className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
             />
             {errors.recipientEmail && <p className="text-red-500 text-sm mt-1">{errors.recipientEmail.message}</p>}
-            <p className="text-xs text-gray-500 mt-1">
-              El acceso a los libros le llegará a este email. Vos recibirás la confirmación.
-            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirmá el email del destinatario
+            </label>
+            <input
+              {...register('recipientEmailConfirm')}
+              type="email"
+              placeholder="maria@gmail.com"
+              onPaste={(e) => e.preventDefault()}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
+            />
+            {errors.recipientEmailConfirm
+              ? <p className="text-red-500 text-sm mt-1">{errors.recipientEmailConfirm.message}</p>
+              : <p className="text-xs text-gray-500 mt-1">El acceso a los libros le llegará a este email.</p>
+            }
           </div>
         </div>
       )}
