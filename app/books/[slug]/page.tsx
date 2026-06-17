@@ -55,22 +55,16 @@ export default async function BookPage({ params }: Props) {
           <h1 className="text-3xl font-bold text-gray-900 leading-tight">{book.title}</h1>
           <p className="text-gray-500 mt-1 text-lg">{book.author}</p>
 
-          {book.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {book.tags.map((tag) => (
-                <span key={tag} className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <p className="text-3xl font-bold text-gray-900 mt-6">
+          <p className="text-3xl font-bold text-gray-900 mt-5">
             ${book.price.toLocaleString('es-AR')}
           </p>
 
+          {book.description && (
+            <p className="text-gray-600 mt-4 leading-relaxed">{book.description}</p>
+          )}
+
           {meta && (
-            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200 text-center text-sm">
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200 text-center text-sm">
               <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
                 <BookOpen className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
                 <span className="text-xs text-gray-400 leading-tight">Número de páginas</span>
@@ -92,10 +86,6 @@ export default async function BookPage({ params }: Props) {
                 <span className="font-semibold text-gray-900">{meta.publishedYear}</span>
               </div>
             </div>
-          )}
-
-          {book.description && (
-            <p className="text-gray-600 mt-6 leading-relaxed">{book.description}</p>
           )}
 
           <AddToCartButton
