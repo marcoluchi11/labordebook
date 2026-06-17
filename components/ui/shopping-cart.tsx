@@ -112,15 +112,16 @@ export function ShoppingCart({ items, onRemoveItem, onCheckout }: ShoppingCartPr
         )}
       </CardContent>
 
-      <CardFooter className="pt-2">
-        <Button
-          className="w-full h-12 text-base font-semibold"
-          disabled={items.length === 0}
-          onClick={onCheckout}
-        >
-          Proceder al pago — ${total.toLocaleString('es-AR')}
-        </Button>
-      </CardFooter>
+      {items.length > 0 && (
+        <CardFooter className="pt-2">
+          <Button
+            className="w-full h-12 text-base font-semibold"
+            onClick={onCheckout}
+          >
+            Proceder al pago — ${total.toLocaleString('es-AR')}
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
