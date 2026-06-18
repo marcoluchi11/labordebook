@@ -41,15 +41,15 @@ export default async function ReadPage({ params }: Props) {
           ← Librería
         </Link>
         {book && (
-          <div className="text-center">
-            <p className="text-white text-sm font-medium">{book.title}</p>
-            <p className="text-gray-400 text-xs">{book.author}</p>
+          <div className="flex-1 text-center min-w-0 px-2">
+            <p className="text-white text-sm font-medium truncate">{book.title}</p>
+            <p className="text-gray-400 text-xs truncate">{book.author}</p>
           </div>
         )}
         <div className="w-16" />
       </header>
 
-      <main className="py-8 px-4">
+      <main className="py-2 px-2">
         <PDFViewerWrapper bookId={bookId} />
       </main>
 
