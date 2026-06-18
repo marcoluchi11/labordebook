@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 // Proxies Google Books cover images to avoid CORS restrictions in the browser
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url')
-  if (!url || !url.startsWith('https://books.google.com/')) {
+  const ALLOWED = ['https://books.google.com/', 'https://covers.openlibrary.org/']
+  if (!url || !ALLOWED.some((prefix) => url.startsWith(prefix))) {
     return new NextResponse('URL no permitida', { status: 400 })
   }
 

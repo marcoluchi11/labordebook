@@ -1,34 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const FIELDS = 'title,author_name,publisher,first_publish_year,number_of_pages_median,language,cover_i,subject'
+
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim()
   if (!q) return NextResponse.json(null)
 
-  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1&printType=books`
-  const res = await fetch(url, { next: { revalidate: 3600 } })
+  const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=1&fields=${FIELDS}`
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'ebook-store/1.0' },
+    next: { revalidate: 3600 },
+  })
+
   if (!res.ok) return NextResponse.json(null)
 
   const data = await res.json()
-  if (!data.items?.length) return NextResponse.json(null)
+  const doc = data.docs?.[0]
+  if (!doc) return NextResponse.json(null)
 
-  const info = data.items[0].volumeInfo as Record<string, unknown>
-  const links = info.imageLinks as Record<string, string> | undefined
-  let coverUrl: string | null = links?.thumbnail ?? links?.smallThumbnail ?? null
-  if (coverUrl) {
-    coverUrl = coverUrl.replace('http://', 'https://').replace('zoom=1', 'zoom=3')
-  }
+  const lang = (doc.language as string[] | undefined)?.[0]
+  const mappedLang = lang === 'spa' ? 'es' : lang === 'por' ? 'pt' : lang === 'eng' ? 'en' : undefined
 
-  const rawDate = info.publishedDate as string | undefined
-  const year = rawDate ? parseInt(rawDate.slice(0, 4)) : undefined
+  // Pick the shortest/most common publisher name (usually the real one, not a distributor)
+  const publishers: string[] = doc.publisher ?? []
+  const publisher = publishers.sort((a: string, b: string) => a.length - b.length)[0]
+
+  const coverUrl = doc.cover_i
+    ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
+    : null
 
   return NextResponse.json({
-    title: info.title as string | undefined,
-    author: (info.authors as string[] | undefined)?.[0],
-    publisher: info.publisher as string | undefined,
-    published_year: year && !isNaN(year) ? year : undefined,
-    page_count: info.pageCount as number | undefined,
-    description: info.description as string | undefined,
-    language: info.language as string | undefined,
+    title: doc.title as string | undefined,
+    author: (doc.author_name as string[] | undefined)?.[0],
+    publisher,
+    published_year: doc.first_publish_year as number | undefined,
+    page_count: doc.number_of_pages_median as number | undefined,
+    language: mappedLang,
     cover_url: coverUrl,
   })
 }
