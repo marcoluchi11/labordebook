@@ -6,6 +6,7 @@ import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 const schema = z.object({
   title: z.string().min(1, 'Requerido'),
@@ -37,6 +38,43 @@ async function uploadFile(file: File, uploadUrl: string): Promise<void> {
   if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
 }
 
+async function extractFromPdf(file: File): Promise<{ title?: string; author?: string; pages?: number }> {
+  try {
+    const { PDFDocument } = await import('pdf-lib')
+    const pdf = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true })
+    return {
+      title: pdf.getTitle() || undefined,
+      author: pdf.getAuthor() || undefined,
+      pages: pdf.getPageCount() || undefined,
+    }
+  } catch {
+    return {}
+  }
+}
+
+async function extractFromEpub(file: File): Promise<{ title?: string; author?: string }> {
+  try {
+    const JSZip = (await import('jszip')).default
+    const zip = await JSZip.loadAsync(await file.arrayBuffer())
+    const container = await zip.file('META-INF/container.xml')?.async('text')
+    if (!container) return {}
+    const opfPath = container.match(/full-path="([^"]+)"/)?.[1]
+    if (!opfPath) return {}
+    const opf = await zip.file(opfPath)?.async('text')
+    if (!opf) return {}
+    const get = (tag: string) => opf.match(new RegExp(`<dc:${tag}[^>]*>([^<]+)<`, 'i'))?.[1]?.trim()
+    return { title: get('title'), author: get('creator') }
+  } catch {
+    return {}
+  }
+}
+
+function cleanFilename(name: string): string {
+  return name.replace(/\.(pdf|epub)$/i, '').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+type LookupStatus = 'idle' | 'loading' | 'found' | 'not-found'
+
 export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
   const router = useRouter()
   const [pdfFile, setPdfFile] = useState<File | null>(null)
@@ -44,25 +82,78 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lookupStatus, setLookupStatus] = useState<LookupStatus>('idle')
+  const [coverPreview, setCoverPreview] = useState<string | null>(null)
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: { language: 'es', ...defaultValues },
   })
 
-  const onDropPdf = useCallback((files: File[]) => setPdfFile(files[0] ?? null), [])
-  const onDropEpub = useCallback((files: File[]) => setEpubFile(files[0] ?? null), [])
-  const onDropCover = useCallback((files: File[]) => setCoverFile(files[0] ?? null), [])
+  async function lookupBook(query: string, knownPages?: number) {
+    setLookupStatus('loading')
+    setCoverPreview(null)
+    try {
+      const res = await fetch(`/api/admin/lookup-book?q=${encodeURIComponent(query)}`)
+      const data = await res.json()
+      if (!data) { setLookupStatus('not-found'); return }
 
-  const { getRootProps: getPdfProps, getInputProps: getPdfInput, isDragActive: isPdfActive } = useDropzone({
-    onDrop: onDropPdf, accept: { 'application/pdf': ['.pdf'] }, maxFiles: 1,
-  })
-  const { getRootProps: getEpubProps, getInputProps: getEpubInput, isDragActive: isEpubActive } = useDropzone({
-    onDrop: onDropEpub, accept: { 'application/epub+zip': ['.epub'] }, maxFiles: 1,
-  })
-  const { getRootProps: getCoverProps, getInputProps: getCoverInput, isDragActive: isCoverActive } = useDropzone({
-    onDrop: onDropCover, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }, maxFiles: 1,
-  })
+      if (data.title) setValue('title', data.title)
+      if (data.author) setValue('author', data.author)
+      if (data.publisher) setValue('publisher', data.publisher)
+      if (data.published_year) setValue('published_year', data.published_year)
+      if (data.page_count) setValue('page_count', data.page_count)
+      else if (knownPages) setValue('page_count', knownPages)
+      if (data.description) setValue('description', data.description.slice(0, 500))
+      if (data.language && ['es', 'en', 'pt'].includes(data.language)) {
+        setValue('language', data.language as 'es' | 'en' | 'pt')
+      }
+      if (data.cover_url) setCoverPreview(data.cover_url)
+
+      setLookupStatus('found')
+    } catch {
+      setLookupStatus('not-found')
+    }
+  }
+
+  const onDropPdf = useCallback(async (files: File[]) => {
+    const file = files[0]
+    if (!file) return
+    setPdfFile(file)
+    if (bookId) return // don't auto-lookup on edit
+    const meta = await extractFromPdf(file)
+    const query = meta.title ?? cleanFilename(file.name)
+    await lookupBook(query, meta.pages)
+  }, [bookId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onDropEpub = useCallback(async (files: File[]) => {
+    const file = files[0]
+    if (!file) return
+    setEpubFile(file)
+    if (bookId) return // don't auto-lookup on edit
+    if (lookupStatus === 'found') return // PDF already found data
+    const meta = await extractFromEpub(file)
+    const query = meta.title ?? cleanFilename(file.name)
+    await lookupBook(query)
+  }, [bookId, lookupStatus]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onDropCover = useCallback((files: File[]) => {
+    setCoverFile(files[0] ?? null)
+    setCoverPreview(null) // clear Google Books preview when user picks their own
+  }, [])
+
+  async function useSuggestedCover() {
+    if (!coverPreview) return
+    try {
+      const res = await fetch(`/api/admin/proxy-cover?url=${encodeURIComponent(coverPreview)}`)
+      const blob = await res.blob()
+      const file = new File([blob], 'cover.jpg', { type: 'image/jpeg' })
+      setCoverFile(file)
+      setCoverPreview(null)
+    } catch {
+      // silently ignore — user can upload manually
+    }
+  }
 
   async function onSubmit(data: FormData) {
     if (!bookId && !pdfFile && !epubFile) {
@@ -74,7 +165,6 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
     setError(null)
 
     try {
-      // Get signed upload URLs from server
       const uploadRes = await fetch('/api/admin/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,14 +179,12 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
       if (!uploadRes.ok) throw new Error('Error al obtener URLs de carga')
       const { pdfUploadUrl, epubUploadUrl, coverUploadUrl, pdfPath, epubPath, coverUrl } = await uploadRes.json()
 
-      // Upload files in parallel
       await Promise.all([
         pdfFile && pdfUploadUrl ? uploadFile(pdfFile, pdfUploadUrl) : null,
         epubFile && epubUploadUrl ? uploadFile(epubFile, epubUploadUrl) : null,
         coverFile && coverUploadUrl ? uploadFile(coverFile, coverUploadUrl) : null,
       ])
 
-      // Create/update book record
       const bookRes = await fetch(bookId ? `/api/admin/books/${bookId}` : '/api/admin/books', {
         method: bookId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,6 +215,89 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-6">
+
+      {/* File uploads — first, so lookup fires before the user touches anything */}
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            PDF {!bookId && <span className="text-gray-400">(al menos uno)</span>}
+          </label>
+          <FileDropzone
+            onDrop={onDropPdf}
+            accept={{ 'application/pdf': ['.pdf'] }}
+            file={pdfFile}
+            placeholder="Arrastrá el PDF acá o hacé click para seleccionar"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            EPUB {!bookId && <span className="text-gray-400">(al menos uno)</span>}
+          </label>
+          <FileDropzone
+            onDrop={onDropEpub}
+            accept={{ 'application/epub+zip': ['.epub'] }}
+            file={epubFile}
+            placeholder="Arrastrá el EPUB acá (opcional)"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Portada (imagen)</label>
+          <FileDropzone
+            onDrop={onDropCover}
+            accept={{ 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }}
+            file={coverFile}
+            placeholder="Arrastrá la imagen de portada"
+          />
+
+          {/* Google Books cover suggestion */}
+          {coverPreview && !coverFile && (
+            <div className="mt-3 flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+              <Image
+                src={`/api/admin/proxy-cover?url=${encodeURIComponent(coverPreview)}`}
+                alt="Portada sugerida"
+                width={48}
+                height={64}
+                className="rounded object-cover shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-900">Portada encontrada en Google Books</p>
+                <p className="text-xs text-blue-600 mt-0.5">Podés usarla o subir la tuya propia.</p>
+              </div>
+              <button
+                type="button"
+                onClick={useSuggestedCover}
+                className="shrink-0 bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Usar esta
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Lookup status banner */}
+      {lookupStatus === 'loading' && (
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600">
+          <span className="animate-spin text-base">⏳</span>
+          Buscando datos del libro en Google Books…
+        </div>
+      )}
+      {lookupStatus === 'found' && (
+        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800">
+          <span>✓</span>
+          Datos completados automáticamente — revisá que todo esté bien antes de guardar.
+        </div>
+      )}
+      {lookupStatus === 'not-found' && (
+        <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-sm text-yellow-800">
+          <span>⚠</span>
+          No encontré datos automáticamente. Completá los campos manualmente.
+        </div>
+      )}
+
+      {/* Book fields */}
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">Título *</label>
@@ -196,33 +367,6 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
         </div>
       </div>
 
-      {/* File uploads */}
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">PDF {!bookId && <span className="text-gray-400">(al menos uno)</span>}</label>
-          <div {...getPdfProps()} className={dropZoneClass(isPdfActive)}>
-            <input {...getPdfInput()} />
-            {pdfFile ? <p className="text-gray-700">✓ {pdfFile.name}</p> : <p className="text-gray-400">Arrastrá el PDF acá o hacé click para seleccionar</p>}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">EPUB {!bookId && <span className="text-gray-400">(al menos uno)</span>}</label>
-          <div {...getEpubProps()} className={dropZoneClass(isEpubActive)}>
-            <input {...getEpubInput()} />
-            {epubFile ? <p className="text-gray-700">✓ {epubFile.name}</p> : <p className="text-gray-400">Arrastrá el EPUB acá (opcional)</p>}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Portada (imagen)</label>
-          <div {...getCoverProps()} className={dropZoneClass(isCoverActive)}>
-            <input {...getCoverInput()} />
-            {coverFile ? <p className="text-gray-700">✓ {coverFile.name}</p> : <p className="text-gray-400">Arrastrá la imagen de portada</p>}
-          </div>
-        </div>
-      </div>
-
       <div className="flex items-center gap-2">
         <input type="checkbox" id="published" {...register('is_published')} className="rounded" />
         <label htmlFor="published" className="text-sm text-gray-700">Publicar inmediatamente</label>
@@ -240,5 +384,31 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
         {loading ? 'Guardando...' : bookId ? 'Guardar cambios' : 'Crear libro'}
       </button>
     </form>
+  )
+}
+
+// Small internal component to avoid repeating dropzone boilerplate
+function FileDropzone({
+  onDrop,
+  accept,
+  file,
+  placeholder,
+}: {
+  onDrop: (files: File[]) => void
+  accept: Record<string, string[]>
+  file: File | null
+  placeholder: string
+}) {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept, maxFiles: 1 })
+  return (
+    <div
+      {...getRootProps()}
+      className={`border-2 border-dashed rounded-lg p-4 text-center text-sm cursor-pointer transition-colors ${
+        isDragActive ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400'
+      }`}
+    >
+      <input {...getInputProps()} />
+      {file ? <p className="text-gray-700">✓ {file.name}</p> : <p className="text-gray-400">{placeholder}</p>}
+    </div>
   )
 }
