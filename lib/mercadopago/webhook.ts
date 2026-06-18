@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 // Verifies MP webhook signature to prevent spoofed requests.
 // Spec: https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks
@@ -20,5 +20,9 @@ export function verifyMPSignature(
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`
   const expected = createHmac('sha256', secret).update(manifest).digest('hex')
 
-  return expected === v1
+  // Use constant-time comparison to prevent timing attacks
+  const expectedBuf = Buffer.from(expected, 'hex')
+  const receivedBuf = Buffer.from(v1, 'hex')
+  if (expectedBuf.length !== receivedBuf.length) return false
+  return timingSafeEqual(expectedBuf, receivedBuf)
 }
