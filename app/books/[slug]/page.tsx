@@ -3,8 +3,7 @@ import Link from 'next/link'
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { Book } from '@/components/ui/book'
 import { AddToCartButton } from '@/components/catalog/AddToCartButton'
-import { getBookMeta } from '@/lib/book-metadata'
-import { BookOpen, Globe, Building2, Calendar } from 'lucide-react'
+import { BookOpen, Globe, Building2, Calendar, FileText, BookMarked } from 'lucide-react'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -32,7 +31,8 @@ export default async function BookPage({ params }: Props) {
 
   if (!book) notFound()
 
-  const meta = getBookMeta(book.slug)
+  const hasDetails = book.page_count || book.publisher || book.published_year
+  const langLabel = book.language === 'es' ? 'Español' : book.language === 'en' ? 'Inglés' : book.language === 'pt' ? 'Portugués' : book.language
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-12">
@@ -63,28 +63,51 @@ export default async function BookPage({ params }: Props) {
             <p className="text-gray-600 mt-4 leading-relaxed">{book.description}</p>
           )}
 
-          {meta && (
+          {/* Formats available */}
+          <div className="mt-4">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-2">Formatos disponibles</p>
+            <div className="flex gap-2">
+              <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full">
+                <FileText className="h-3.5 w-3.5" />
+                PDF
+              </span>
+              {book.epub_path && (
+                <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-full">
+                  <BookMarked className="h-3.5 w-3.5" />
+                  EPUB
+                </span>
+              )}
+            </div>
+          </div>
+
+          {hasDetails && (
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200 text-center text-sm">
-              <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
-                <BookOpen className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
-                <span className="text-xs text-gray-400 leading-tight">Número de páginas</span>
-                <span className="font-semibold text-gray-900">{meta.pages} págs.</span>
-              </div>
+              {book.page_count && (
+                <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
+                  <BookOpen className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
+                  <span className="text-xs text-gray-400 leading-tight">Número de páginas</span>
+                  <span className="font-semibold text-gray-900">{book.page_count} págs.</span>
+                </div>
+              )}
               <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
                 <Globe className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
                 <span className="text-xs text-gray-400 leading-tight">Idioma</span>
-                <span className="font-semibold text-gray-900">{book.language === 'es' ? 'Español' : book.language === 'en' ? 'Inglés' : book.language}</span>
+                <span className="font-semibold text-gray-900">{langLabel}</span>
               </div>
-              <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
-                <Building2 className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
-                <span className="text-xs text-gray-400 leading-tight">Editorial</span>
-                <span className="font-semibold text-gray-900">{meta.publisher}</span>
-              </div>
-              <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
-                <Calendar className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
-                <span className="text-xs text-gray-400 leading-tight">Fecha de publicación</span>
-                <span className="font-semibold text-gray-900">{meta.publishedYear}</span>
-              </div>
+              {book.publisher && (
+                <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
+                  <Building2 className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
+                  <span className="text-xs text-gray-400 leading-tight">Editorial</span>
+                  <span className="font-semibold text-gray-900">{book.publisher}</span>
+                </div>
+              )}
+              {book.published_year && (
+                <div className="bg-white px-3 py-4 flex flex-col items-center gap-1.5">
+                  <Calendar className="h-5 w-5 text-gray-400" strokeWidth={1.5} />
+                  <span className="text-xs text-gray-400 leading-tight">Publicación</span>
+                  <span className="font-semibold text-gray-900">{book.published_year}</span>
+                </div>
+              )}
             </div>
           )}
 

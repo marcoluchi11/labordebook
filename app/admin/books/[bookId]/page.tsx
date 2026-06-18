@@ -30,6 +30,9 @@ export default async function EditBookPage({ params }: Props) {
           long_description: book.long_description ?? '',
           price: book.price,
           language: book.language as 'es' | 'en' | 'pt',
+          publisher: book.publisher ?? '',
+          published_year: book.published_year ?? undefined,
+          page_count: book.page_count ?? undefined,
           tags: book.tags.join(', '),
           is_published: book.is_published,
         }}

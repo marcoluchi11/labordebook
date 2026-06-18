@@ -18,6 +18,8 @@ export interface Database {
           epub_path: string | null
           page_count: number | null
           language: string
+          publisher: string | null
+          published_year: number | null
           tags: string[]
           is_published: boolean
           created_at: string
@@ -37,6 +39,8 @@ export interface Database {
           epub_path?: string | null
           page_count?: number | null
           language?: string
+          publisher?: string | null
+          published_year?: number | null
           tags?: string[]
           is_published?: boolean
           created_at?: string
@@ -56,6 +60,8 @@ export interface Database {
           epub_path?: string | null
           page_count?: number | null
           language?: string
+          publisher?: string | null
+          published_year?: number | null
           tags?: string[]
           is_published?: boolean
           created_at?: string

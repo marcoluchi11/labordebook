@@ -14,6 +14,9 @@ const schema = z.object({
   long_description: z.string().optional(),
   price: z.coerce.number().min(1, 'El precio debe ser mayor a 0'),
   language: z.enum(['es', 'en', 'pt']),
+  publisher: z.string().min(1, 'Requerido'),
+  published_year: z.coerce.number().int().min(1000, 'Año inválido').max(new Date().getFullYear(), 'Año inválido'),
+  page_count: z.coerce.number().int().min(1, 'Requerido'),
   tags: z.string().optional(),
   is_published: z.boolean().optional(),
 })
@@ -155,7 +158,7 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Idioma</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Idioma *</label>
           <select {...register('language')} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900">
             <option value="es">Español</option>
             <option value="en">Inglés</option>
@@ -166,6 +169,30 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Tags (separados por coma)</label>
           <input {...register('tags')} placeholder="ficción, aventura, ..." className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900" />
+        </div>
+      </div>
+
+      {/* Detalles del libro */}
+      <div>
+        <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Detalles del libro</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Editorial *</label>
+            <input {...register('publisher')} placeholder="Ej: Paidós" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            {errors.publisher && <p className="text-red-500 text-xs mt-1">{errors.publisher.message}</p>}
+          </div>
+
+          <div className="col-span-2 sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Año de publicación *</label>
+            <input {...register('published_year')} type="number" min="1000" max={new Date().getFullYear()} placeholder="Ej: 2023" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            {errors.published_year && <p className="text-red-500 text-xs mt-1">{errors.published_year.message}</p>}
+          </div>
+
+          <div className="col-span-2 sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Número de páginas *</label>
+            <input {...register('page_count')} type="number" min="1" placeholder="Ej: 320" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            {errors.page_count && <p className="text-red-500 text-xs mt-1">{errors.page_count.message}</p>}
+          </div>
         </div>
       </div>
 
