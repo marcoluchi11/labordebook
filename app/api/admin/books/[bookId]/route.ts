@@ -58,6 +58,29 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   const admin = await requireAdmin(supabase)
   if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const { data: book } = await supabase
+    .from('books')
+    .select('pdf_path, epub_path, cover_url')
+    .eq('id', bookId)
+    .single()
+
+  if (!book) return NextResponse.json({ error: 'Libro no encontrado' }, { status: 404 })
+
+  // Delete storage files (best-effort — don't fail if files are missing)
+  const privateFiles = [book.pdf_path, book.epub_path].filter(Boolean) as string[]
+  if (privateFiles.length > 0) {
+    await supabase.storage.from('books-private').remove(privateFiles)
+  }
+
+  if (book.cover_url) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const prefix = `${supabaseUrl}/storage/v1/object/public/books-public/`
+    if (book.cover_url.startsWith(prefix)) {
+      const coverPath = book.cover_url.slice(prefix.length)
+      await supabase.storage.from('books-public').remove([coverPath])
+    }
+  }
+
   const { error } = await supabase.from('books').delete().eq('id', bookId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import { DeleteBookButton } from '@/components/admin/DeleteBookButton'
 
 export default async function AdminBooksPage() {
   const supabase = createServiceRoleClient()
@@ -50,9 +51,12 @@ export default async function AdminBooksPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/books/${b.id}`} className="text-gray-400 hover:text-gray-700 text-xs">
-                    Editar
-                  </Link>
+                  <div className="flex items-center justify-end gap-4">
+                    <Link href={`/admin/books/${b.id}`} className="text-gray-400 hover:text-gray-700 text-xs">
+                      Editar
+                    </Link>
+                    <DeleteBookButton bookId={b.id} bookTitle={b.title} />
+                  </div>
                 </td>
               </tr>
             ))}
