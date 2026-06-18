@@ -6,7 +6,6 @@ import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 
 const schema = z.object({
   title: z.string().min(1, 'Requerido'),
@@ -254,12 +253,13 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
           {/* Google Books cover suggestion */}
           {coverPreview && !coverFile && (
             <div className="mt-3 flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={`/api/admin/proxy-cover?url=${encodeURIComponent(coverPreview)}`}
                 alt="Portada sugerida"
                 width={48}
                 height={64}
-                className="rounded object-cover shrink-0"
+                className="rounded object-cover shrink-0 w-12 h-16"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-blue-900">Portada encontrada en Google Books</p>
