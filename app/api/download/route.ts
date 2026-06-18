@@ -100,6 +100,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'EPUB no disponible para este libro' }, { status: 404 })
   }
 
+  if (format === 'pdf' && !book.pdf_path) {
+    return NextResponse.json({ error: 'PDF no disponible para este libro' }, { status: 404 })
+  }
+
   // Check watermark cache
   const { data: cached } = await supabase
     .from('watermark_cache')
@@ -126,7 +130,7 @@ export async function GET(request: NextRequest) {
 
   if (!fileBytes!) {
     // Generate watermarked file
-    const originalPath = format === 'pdf' ? book.pdf_path : book.epub_path!
+    const originalPath = (format === 'pdf' ? book.pdf_path : book.epub_path)!
     const { data: originalData, error: originalError } = await supabase.storage
       .from('books-private')
       .download(originalPath)

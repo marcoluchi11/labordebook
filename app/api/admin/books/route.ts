@@ -15,9 +15,11 @@ const createSchema = z.object({
   page_count: z.number().int().min(1),
   tags: z.array(z.string()).default([]),
   is_published: z.boolean().default(false),
-  pdf_path: z.string().min(1),
+  pdf_path: z.string().optional(),
   epub_path: z.string().optional(),
   cover_url: z.string().optional(),
+}).refine((d) => d.pdf_path || d.epub_path, {
+  message: 'Debés subir al menos un archivo: PDF o EPUB',
 })
 
 async function requireAdmin(supabase: ReturnType<typeof createServiceRoleClient>) {

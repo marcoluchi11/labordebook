@@ -65,8 +65,8 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
   })
 
   async function onSubmit(data: FormData) {
-    if (!bookId && !pdfFile) {
-      setError('El archivo PDF es requerido')
+    if (!bookId && !pdfFile && !epubFile) {
+      setError('Debés subir al menos un archivo: PDF o EPUB')
       return
     }
 
@@ -199,7 +199,7 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
       {/* File uploads */}
       <div className="space-y-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">PDF {!bookId && '*'}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">PDF {!bookId && <span className="text-gray-400">(al menos uno)</span>}</label>
           <div {...getPdfProps()} className={dropZoneClass(isPdfActive)}>
             <input {...getPdfInput()} />
             {pdfFile ? <p className="text-gray-700">✓ {pdfFile.name}</p> : <p className="text-gray-400">Arrastrá el PDF acá o hacé click para seleccionar</p>}
@@ -207,7 +207,7 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">EPUB (opcional)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">EPUB {!bookId && <span className="text-gray-400">(al menos uno)</span>}</label>
           <div {...getEpubProps()} className={dropZoneClass(isEpubActive)}>
             <input {...getEpubInput()} />
             {epubFile ? <p className="text-gray-700">✓ {epubFile.name}</p> : <p className="text-gray-400">Arrastrá el EPUB acá (opcional)</p>}
