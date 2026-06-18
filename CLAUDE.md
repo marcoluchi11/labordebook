@@ -104,3 +104,49 @@ NEXT_PUBLIC_APP_URL
 UPSTASH_REDIS_REST_URL
 UPSTASH_REDIS_REST_TOKEN
 ```
+
+## Frontend & mobile conventions
+
+This storefront is read mostly on phones — buyers open the purchase email and read/download from mobile. **Mobile is the default target, not an afterthought.** Build mobile-first and verify on a 390px viewport before treating any UI as done.
+
+### Verify on real viewports (don't assume)
+- Playwright is already installed. When changing UI, take a screenshot at **390×844** (iPhone) and **360×800** (common Android) and actually look at it before declaring it done. Check the **768px** breakpoint too for tablet/desktop.
+- On any screen with an input (`/access`, checkout), test with the on-screen keyboard open: the focused field must stay visible and not be covered by the keyboard.
+
+### The reader (`/read/[bookId]`) is the make-or-break mobile screen
+- PDF.js must render **fit-to-width by default** on mobile. Never require horizontal scrolling to read a line of text.
+- **Pinch-zoom and double-tap zoom must work.** Do not disable user scaling in the viewport meta tag (`user-scalable=no` / `maximum-scale=1` are banned here).
+- Page navigation controls sit within thumb reach (bottom of screen), are **≥44px touch targets**, and have enough spacing to avoid mis-taps.
+- Respect **safe areas** with `env(safe-area-inset-*)` so controls don't end up under the notch or home indicator.
+
+### General rules
+- Touch targets **≥44×44px**. Hover is never the only way to reach an action (no hover-only menus or tooltips that hide critical controls).
+- No fixed widths that overflow 360px. Use fluid / `max-width` layouts. **No element should trigger horizontal scroll** on a phone.
+- Respect `prefers-reduced-motion`; keep animation minimal and purposeful.
+- Visible keyboard focus on every interactive element.
+- The MercadoPago redirect (`initPoint`) must open correctly in mobile browsers and return cleanly to the app. **Test the full pay → return loop on a phone**, not only on desktop.
+
+### Admin (`/admin/*`)
+- Lower mobile priority (used mostly from desktop), but login and the core actions should still be usable on a phone. Don't spend the mobile-polish budget here first.
+
+## Security & privacy review
+
+Run the built-in **`/security-review`** before every deploy. The automated pass catches generic issues (injection, XSS, exposed secrets, vulnerable deps); the rules below are the **project-specific** things it won't know to check. Treat all findings as *detect-and-explain* — review each one before applying a fix, especially anything touching RLS, tokens, or payments. An automatic "fix" to auth logic is more dangerous than the original finding.
+
+### Hardening rules grounded in this codebase
+- **Rate limiting must be live in production.** `UPSTASH_REDIS_*` are placeholders today. If they're unset or placeholder, the rate limiter silently no-ops and checkout / viewer / download are left unprotected against abuse. **Fail closed**: assert real values at boot in production, or block the deploy if they're missing.
+- **`MP_WEBHOOK_SECRET=dev_skip` must never reach a deployed environment.** It bypasses webhook signature verification — in production that would let an attacker forge payment confirmations and mint tokens + emails for free. The webhook handler must **refuse to skip verification when `NODE_ENV==='production'`**, regardless of the secret's value.
+- **New tables are RLS-on by default.** Any migration that creates a table enables RLS and defines its policies in the same migration. No client-reachable table without an explicit policy. Default to service-role-only access unless there's a concrete reason for client access.
+- **Secrets never touch the client bundle.** Only `NEXT_PUBLIC_*` vars may appear client-side. `SUPABASE_SERVICE_ROLE_KEY`, `MP_ACCESS_TOKEN`, `RESEND_API_KEY`, etc. stay server-only. Private buckets (`books-private`, `watermarks`) are streamed server-side only (existing rule — keep enforcing it).
+- **Signed Storage URLs stay short-lived** (viewer = 5 min). Don't lengthen the TTL to "fix" a UX problem — re-issue the URL instead.
+- **Raw tokens are single-use secrets.** Never log them; only the SHA-256 hash is ever stored. Keep consumption atomic via `consume_token`.
+
+### Privacy (PII)
+- Watermarks embed buyer name + **masked** email + purchase ID. Keep the email masked consistently; never embed the full address.
+- **Do not log PII** (buyer name, full email, raw tokens) in server logs or error reports. Scrub before sending anything to an external service (error tracking, analytics).
+- Honor the data lifecycle already designed: watermark cache 7 days, token TTLs as specified. Don't silently extend retention.
+- Purchase emails (Resend) carry single-use secret links. Don't add extra exposure — e.g. never put a token in a URL that gets logged by analytics or a third-party script.
+
+### Supabase-specific (what code scanners miss)
+- RLS can't be fully verified from a code scan. Check the **actual policies** with SQL (`select * from pg_policies;`) and review Supabase's **Security Advisor** in the dashboard. A table with RLS enabled but no policy is either locked or wide open depending on context — verify the intent matches.
+- Confirm SQL functions like `consume_token` run with the intended privileges (`SECURITY DEFINER` vs `INVOKER`) and aren't callable by the `anon` role in unintended ways.
