@@ -81,6 +81,9 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     }
   }
 
+  // purchases_book_id_fkey has no CASCADE — delete purchases first (tokens/cache cascade from purchases)
+  await supabase.from('purchases').delete().eq('book_id', bookId)
+
   const { error } = await supabase.from('books').delete().eq('id', bookId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
