@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "pdfjs-dist/web/pdf_viewer.css";
 
 @theme inline {
   --color-amber-600: var(--ds-amber-600);

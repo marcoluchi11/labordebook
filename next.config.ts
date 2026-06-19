@@ -19,7 +19,11 @@ const viewerCsp = [
 ].join('; ')
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['d86a-2803-9800-98c2-87fa-9daf-357b-4762-a381.ngrok-free.app'],
+  devIndicators: false,
+  allowedDevOrigins: [
+    'd86a-2803-9800-98c2-87fa-9daf-357b-4762-a381.ngrok-free.app',
+    '192.168.100.49',
+  ],
   images: {
     remotePatterns: [
       {

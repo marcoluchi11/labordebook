@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 
-type PDFViewerType = React.ComponentType<{ bookId: string }>
+type PDFViewerType = React.ComponentType<{ bookId: string; bookTitle?: string }>
 
-export function PDFViewerWrapper({ bookId }: { bookId: string }) {
+export function PDFViewerWrapper({ bookId, bookTitle }: { bookId: string; bookTitle?: string }) {
   const [Viewer, setViewer] = useState<PDFViewerType | null>(null)
 
   useEffect(() => {
@@ -13,11 +13,11 @@ export function PDFViewerWrapper({ bookId }: { bookId: string }) {
 
   if (!Viewer) {
     return (
-      <div className="flex items-center justify-center h-96 text-gray-500">
-        Cargando libro...
+      <div className="fixed inset-0 bg-gray-900 flex items-center justify-center text-gray-400">
+        Cargando libro…
       </div>
     )
   }
 
-  return <Viewer bookId={bookId} />
+  return <Viewer bookId={bookId} bookTitle={bookTitle} />
 }

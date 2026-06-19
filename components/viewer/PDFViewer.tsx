@@ -1,126 +1,133 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 
-interface PDFViewerProps {
+interface Props {
   bookId: string
+  bookTitle?: string
 }
 
-export function PDFViewer({ bookId }: PDFViewerProps) {
-  const canvasRef    = useRef<HTMLCanvasElement>(null)
+export function PDFViewer({ bookId, bookTitle }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const renderTaskRef = useRef<import('pdfjs-dist').RenderTask | null>(null)
-  const pdfDocRef    = useRef<import('pdfjs-dist').PDFDocumentProxy | null>(null)
+  const viewerRef    = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfViewerRef = useRef<any>(null)
 
-  const [pdfDoc,      setPdfDoc]      = useState<import('pdfjs-dist').PDFDocumentProxy | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [numPages,    setNumPages]    = useState(0)
-  const [scale,       setScale]       = useState(1.0)
-  const [loading,     setLoading]     = useState(true)
-  const [error,       setError]       = useState<string | null>(null)
+  const [currentPage,  setCurrentPage]  = useState(1)
+  const [numPages,     setNumPages]     = useState(0)
+  const [scale,        setScale]        = useState(100)
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState<string | null>(null)
+  const [showTutorial, setShowTutorial] = useState(false)
 
-  // Derive fit-to-width scale from the container's current clientWidth
-  const calcFitScale = useCallback(
-    async (doc: import('pdfjs-dist').PDFDocumentProxy, pageNum: number): Promise<number> => {
-      if (!containerRef.current) return 1
-      const page      = await doc.getPage(pageNum)
-      const unscaled  = page.getViewport({ scale: 1 })
-      return containerRef.current.clientWidth / unscaled.width
-    },
-    []
-  )
-
-  // Load PDF.js and the document
   useEffect(() => {
-    let cancelled = false
+    const ac = new AbortController()
 
-    async function loadPdf() {
+    async function init() {
       try {
+        const res = await fetch(`/api/viewer/${bookId}/session`)
+        if (!res.ok) throw new Error('No autorizado')
+        const { url } = await res.json()
+
         const pdfjsLib = await import('pdfjs-dist')
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
-        const res = await fetch(`/api/viewer/${bookId}/session`)
-        if (!res.ok) throw new Error('No autorizado')
+        const { PDFViewer, EventBus, PDFLinkService } = await import('pdfjs-dist/web/pdf_viewer.mjs')
 
-        const { url } = await res.json()
-        const doc = await pdfjsLib.getDocument({ url, withCredentials: false }).promise
-        if (cancelled) return
+        if (ac.signal.aborted) return
 
-        pdfDocRef.current = doc
-        setPdfDoc(doc)
-        setNumPages(doc.numPages)
+        const eventBus   = new EventBus()
+        const linkService = new PDFLinkService({ eventBus })
 
-        const fitScale = await calcFitScale(doc, 1)
-        if (!cancelled) setScale(fitScale)
+        const container = containerRef.current!
+        const viewer    = viewerRef.current!
+
+        const pdfViewer = new PDFViewer({
+          container,
+          viewer,
+          eventBus,
+          linkService,
+          removePageBorders: false,
+          textLayerMode: 0, // disabled — prevents text selection / copy
+        })
+        linkService.setViewer(pdfViewer)
+        pdfViewerRef.current = pdfViewer
+
+        eventBus.on('pagechanging', (evt: { pageNumber: number }) => {
+          setCurrentPage(evt.pageNumber)
+        })
+        eventBus.on('scalechanging', (evt: { scale: number }) => {
+          setScale(Math.round(evt.scale * 100))
+        })
+
+        const pdfDoc = await pdfjsLib.getDocument({ url, withCredentials: false }).promise
+        if (ac.signal.aborted) return
+
+        setNumPages(pdfDoc.numPages)
+        pdfViewer.setDocument(pdfDoc)
+        linkService.setDocument(pdfDoc)
+
+        const saved = localStorage.getItem(`viewer_zoom_${bookId}`)
+        pdfViewer.currentScaleValue = saved ?? 'page-width'
+
+        if (!localStorage.getItem('viewer_tutorial_shown')) {
+          setShowTutorial(true)
+        }
+
         setLoading(false)
       } catch {
-        if (!cancelled) {
+        if (!ac.signal.aborted) {
           setError('No se pudo cargar el libro. Verificá tu conexión.')
           setLoading(false)
         }
       }
     }
 
-    loadPdf()
-    return () => { cancelled = true }
-  }, [bookId, calcFitScale])
+    init()
+    return () => ac.abort()
+  }, [bookId])
 
-  // Recalculate fit-to-width on resize / orientation change
+  function dismissTutorial() {
+    setShowTutorial(false)
+    localStorage.setItem('viewer_tutorial_shown', '1')
+  }
+
+  function prevPage() {
+    if (pdfViewerRef.current && currentPage > 1) {
+      pdfViewerRef.current.currentPageNumber = currentPage - 1
+    }
+  }
+
+  function nextPage() {
+    if (pdfViewerRef.current && currentPage < numPages) {
+      pdfViewerRef.current.currentPageNumber = currentPage + 1
+    }
+  }
+
+  function zoomIn() {
+    if (!pdfViewerRef.current) return
+    const next = Math.min(3, pdfViewerRef.current.currentScale + 0.1)
+    pdfViewerRef.current.currentScaleValue = String(next)
+    localStorage.setItem(`viewer_zoom_${bookId}`, String(next))
+  }
+
+  function zoomOut() {
+    if (!pdfViewerRef.current) return
+    const next = Math.max(0.25, pdfViewerRef.current.currentScale - 0.1)
+    pdfViewerRef.current.currentScaleValue = String(next)
+    localStorage.setItem(`viewer_zoom_${bookId}`, String(next))
+  }
+
+  function resetZoom() {
+    if (!pdfViewerRef.current) return
+    pdfViewerRef.current.currentScaleValue = 'page-width'
+    localStorage.removeItem(`viewer_zoom_${bookId}`)
+  }
+
+  // Anti-copy / anti-print
   useEffect(() => {
-    const handleResize = async () => {
-      const doc = pdfDocRef.current
-      if (!doc) return
-      const fitScale = await calcFitScale(doc, currentPage)
-      setScale(fitScale)
-    }
-
-    window.addEventListener('resize', handleResize)
-    window.addEventListener('orientationchange', handleResize)
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('orientationchange', handleResize)
-    }
-  }, [calcFitScale, currentPage])
-
-  // Render current page at scale × devicePixelRatio for crisp retina output
-  const renderPage = useCallback(async (pageNum: number) => {
-    if (!pdfDoc || !canvasRef.current) return
-
-    if (renderTaskRef.current) {
-      try { renderTaskRef.current.cancel() } catch { /* expected */ }
-    }
-
-    const page       = await pdfDoc.getPage(pageNum)
-    const pixelRatio = window.devicePixelRatio || 1
-    const viewport   = page.getViewport({ scale: scale * pixelRatio })
-    const canvas     = canvasRef.current
-    const ctx        = canvas.getContext('2d')
-    if (!ctx) return
-
-    canvas.width        = viewport.width
-    canvas.height       = viewport.height
-    canvas.style.width  = `${viewport.width  / pixelRatio}px`
-    canvas.style.height = `${viewport.height / pixelRatio}px`
-
-    const renderTask = page.render({ canvasContext: ctx, viewport, canvas })
-    renderTaskRef.current = renderTask
-
-    try {
-      await renderTask.promise
-    } catch (err: unknown) {
-      if ((err as { name?: string }).name !== 'RenderingCancelledException') {
-        console.error('Render error', err)
-      }
-    }
-  }, [pdfDoc, scale])
-
-  useEffect(() => {
-    renderPage(currentPage)
-  }, [currentPage, renderPage])
-
-  // Anti-copy measures
-  useEffect(() => {
-    const prevent     = (e: Event)       => e.preventDefault()
+    const prevent     = (e: Event)         => e.preventDefault()
     const preventKeys = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && ['p', 's', 'a'].includes(e.key)) e.preventDefault()
     }
@@ -132,58 +139,111 @@ export function PDFViewer({ bookId }: PDFViewerProps) {
     }
   }, [])
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-96 text-gray-500">
-      Cargando libro...
-    </div>
-  )
-
-  if (error) return (
-    <div className="flex items-center justify-center h-96 text-red-500">
-      {error}
-    </div>
-  )
-
   return (
-    <div className="no-select no-print flex flex-col items-center w-full">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 bg-gray-800 text-white px-3 py-1 rounded-lg mb-3 text-sm w-full justify-center">
-        <button
-          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-          disabled={currentPage <= 1}
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-700 rounded disabled:opacity-40"
+    <div className="fixed inset-0 flex flex-col bg-gray-900 no-select no-print">
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="absolute inset-0 z-40 bg-gray-900 flex items-center justify-center text-gray-400">
+          Cargando libro…
+        </div>
+      )}
+
+      {/* Error overlay */}
+      {error && (
+        <div className="absolute inset-0 z-40 bg-gray-900 flex items-center justify-center text-red-400 px-6 text-center">
+          {error}
+        </div>
+      )}
+
+      {showTutorial && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
+          <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <p className="text-2xl mb-3">📖</p>
+            <h2 className="text-white font-semibold text-lg mb-3">Cómo navegar</h2>
+            <div className="text-gray-300 text-sm leading-relaxed space-y-2 mb-5 text-left">
+              <p>• Scrolleá para avanzar por el libro.</p>
+              <p>• Usá <strong className="text-white">‹ ›</strong> para saltar de página en página.</p>
+              <p>• En mobile podés pellizcar para hacer zoom.</p>
+              <p>• Los botones <strong className="text-white">− +</strong> ajustan el tamaño del texto.</p>
+            </div>
+            <button
+              onClick={dismissTutorial}
+              className="bg-white text-gray-900 font-medium px-6 py-2.5 rounded-lg w-full hover:bg-gray-100 transition-colors"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/*
+        PDFViewer requirement: container must be position:absolute.
+        The container div must always be in the DOM so refs are available
+        before the viewer is initialized. Loading/error overlays sit above it.
+      */}
+      <div className="flex-1 relative overflow-hidden">
+        <div
+          ref={containerRef}
+          style={{ position: 'absolute', inset: 0, overflow: 'auto' }}
         >
-          ←
-        </button>
-        <span className="text-xs tabular-nums">
-          {currentPage} / {numPages}
-        </span>
-        <button
-          onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
-          disabled={currentPage >= numPages}
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-700 rounded disabled:opacity-40"
-        >
-          →
-        </button>
-        <span className="w-px h-4 bg-gray-600 mx-1" />
-        <button
-          onClick={() => setScale((s) => Math.max(0.5, s - 0.2))}
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-700 rounded"
-        >
-          −
-        </button>
-        <span className="text-xs tabular-nums w-10 text-center">{Math.round(scale * 100)}%</span>
-        <button
-          onClick={() => setScale((s) => Math.min(3, s + 0.2))}
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-700 rounded"
-        >
-          +
-        </button>
+          <div ref={viewerRef} className="pdfViewer" />
+        </div>
       </div>
 
-      {/* Canvas — overflow-x:auto so manual zoom doesn't clip */}
-      <div ref={containerRef} className="w-full overflow-x-auto shadow-lg">
-        <canvas ref={canvasRef} />
+      {/* Bottom toolbar */}
+      <div
+        className="shrink-0 bg-gray-800/95 backdrop-blur-sm flex items-center justify-between px-2 gap-1"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 6px)', paddingTop: '6px' }}
+      >
+        <div className="flex items-center gap-1">
+          <button
+            onClick={prevPage}
+            disabled={currentPage <= 1}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:bg-gray-700 rounded-lg disabled:opacity-30 text-lg"
+          >
+            ‹
+          </button>
+          <span className="text-gray-300 text-xs tabular-nums min-w-[52px] text-center">
+            {currentPage} / {numPages}
+          </span>
+          <button
+            onClick={nextPage}
+            disabled={currentPage >= numPages}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:bg-gray-700 rounded-lg disabled:opacity-30 text-lg"
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={zoomOut}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:bg-gray-700 rounded-lg text-lg"
+          >
+            −
+          </button>
+          <button
+            onClick={resetZoom}
+            className="text-gray-300 text-xs tabular-nums min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-700 rounded-lg"
+          >
+            {scale}%
+          </button>
+          <button
+            onClick={zoomIn}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:bg-gray-700 rounded-lg text-lg"
+          >
+            +
+          </button>
+        </div>
+
+        <Link
+          href="/"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white rounded-lg text-sm"
+          title={bookTitle ?? 'Volver'}
+        >
+          ⌂
+        </Link>
       </div>
     </div>
   )

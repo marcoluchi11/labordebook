@@ -103,7 +103,8 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
       if (data.published_year) setValue('published_year', data.published_year)
       if (data.page_count) setValue('page_count', data.page_count)
       else if (knownPages) setValue('page_count', knownPages)
-      if (data.description) setValue('description', data.description.slice(0, 500))
+      if (data.description) setValue('description', data.description)
+      if (data.long_description) setValue('long_description', data.long_description)
       if (data.language && ['es', 'en', 'pt'].includes(data.language)) {
         setValue('language', data.language as 'es' | 'en' | 'pt')
       }
