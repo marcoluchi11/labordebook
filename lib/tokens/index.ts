@@ -4,7 +4,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server'
 export type TokenFormat = 'viewer' | 'pdf' | 'epub'
 
 const TOKEN_CONFIG: Record<TokenFormat, { maxUses: number; ttlDays: number }> = {
-  viewer: { maxUses: 5, ttlDays: 365 },
+  viewer: { maxUses: 100, ttlDays: 365 },
   pdf:    { maxUses: 1,   ttlDays: 1 },
   epub:   { maxUses: 1,   ttlDays: 1 },
 }
