@@ -17,6 +17,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Link href="/admin/purchases" className="px-3 py-2 rounded-lg text-sm hover:bg-gray-700 transition-colors mb-1">
           Ventas
         </Link>
+        <Link href="/admin/newsletter" className="px-3 py-2 rounded-lg text-sm hover:bg-gray-700 transition-colors mb-1">
+          Newsletter
+        </Link>
         <div className="mt-auto">
           <Link href="/" className="px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition-colors block">
             Ver tienda →

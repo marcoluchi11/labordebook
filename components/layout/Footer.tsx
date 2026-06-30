@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Mail, Globe } from 'lucide-react'
+import { NewsletterSignup } from '@/components/newsletter/NewsletterSignup'
 
 function IconInstagram({ className }: { className?: string }) {
   return (
@@ -37,8 +38,24 @@ const SOCIAL = [
 export function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-gray-50 mt-auto">
+
+      {/* Newsletter — banda full-width */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="shrink-0">
+              <p className="font-semibold text-gray-900 text-sm">Novedades y promociones</p>
+              <p className="text-sm text-gray-500 mt-0.5">Enterate primero de libros nuevos y descuentos.</p>
+            </div>
+            <div className="sm:max-w-md w-full">
+              <NewsletterSignup compact />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-5xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-8 border-b border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pb-8 border-b border-gray-200">
 
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -64,10 +81,8 @@ export function Footer() {
                 <Link href="/cart" className="hover:text-gray-900 transition-colors">Carrito</Link>
               </li>
             </ul>
-          </div>
 
-          <div>
-            <p className="font-semibold text-gray-900 text-sm mb-3">Pagos y formatos</p>
+            <p className="font-semibold text-gray-900 text-sm mb-3 mt-6">Pagos y formatos</p>
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <Image src="/mercadopago-logo.svg" alt="MercadoPago" width={60} height={55} className="h-8 w-auto" />
               <Image src="/visa-logo.svg" alt="Visa" width={60} height={20} className="h-5 w-auto" />
