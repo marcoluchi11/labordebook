@@ -7,9 +7,11 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
 ]
 
+const isDev = process.env.NODE_ENV === 'development'
+
 const viewerCsp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "connect-src 'self' https://*.supabase.co",
@@ -21,7 +23,7 @@ const viewerCsp = [
 const nextConfig: NextConfig = {
   devIndicators: false,
   allowedDevOrigins: [
-    'd86a-2803-9800-98c2-87fa-9daf-357b-4762-a381.ngrok-free.app',
+    'ce89-2803-9800-98c2-87fa-7c6f-739a-b028-4a3a.ngrok-free.app',
     '192.168.100.49',
   ],
   images: {
