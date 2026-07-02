@@ -6,7 +6,7 @@ export default async function AdminBooksPage() {
   const supabase = createServiceRoleClient()
   const { data: books } = await supabase
     .from('books')
-    .select('id, slug, title, author, price, is_published, epub_path')
+    .select('id, slug, title, author, price, is_published, epub_path, preview_pages')
     .order('created_at', { ascending: false })
 
   return (
@@ -28,6 +28,7 @@ export default async function AdminBooksPage() {
               <th className="text-left px-4 py-3 text-gray-500 font-medium">Libro</th>
               <th className="text-left px-4 py-3 text-gray-500 font-medium">Precio</th>
               <th className="text-left px-4 py-3 text-gray-500 font-medium">Formatos</th>
+              <th className="text-left px-4 py-3 text-gray-500 font-medium">Muestra</th>
               <th className="text-left px-4 py-3 text-gray-500 font-medium">Estado</th>
               <th className="px-4 py-3" />
             </tr>
@@ -44,6 +45,11 @@ export default async function AdminBooksPage() {
                 </td>
                 <td className="px-4 py-3 text-gray-500">
                   {b.epub_path ? 'PDF + EPUB' : 'PDF'}
+                </td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                    {b.preview_pages} págs.
+                  </span>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>

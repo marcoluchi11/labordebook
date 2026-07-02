@@ -17,6 +17,7 @@ const schema = z.object({
   publisher: z.string().min(1, 'Requerido'),
   published_year: z.coerce.number().int().min(1000, 'Año inválido').max(new Date().getFullYear(), 'Año inválido'),
   page_count: z.coerce.number().int().min(1, 'Requerido'),
+  preview_pages: z.coerce.number().int().min(1, 'Debe ser al menos 1'),
   tags: z.string().optional(),
   is_published: z.boolean().optional(),
 })
@@ -86,7 +87,7 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
-    defaultValues: { language: 'es', ...defaultValues },
+    defaultValues: { language: 'es', preview_pages: 15, ...defaultValues },
   })
 
   async function lookupBook(query: string, knownPages?: number) {
@@ -364,6 +365,13 @@ export function BookUploadForm({ bookId, defaultValues }: BookUploadFormProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Número de páginas *</label>
             <input {...register('page_count')} type="number" min="1" placeholder="Ej: 320" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900" />
             {errors.page_count && <p className="text-red-500 text-xs mt-1">{errors.page_count.message}</p>}
+          </div>
+
+          <div className="col-span-2 sm:col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Páginas de muestra gratis *</label>
+            <input {...register('preview_pages')} type="number" min="1" placeholder="Ej: 6" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            {errors.preview_pages && <p className="text-red-500 text-xs mt-1">{errors.preview_pages.message}</p>}
+            <p className="text-xs text-gray-400 mt-1">Cuántas páginas puede leer gratis un usuario antes de que le pidamos comprar. Saltate el índice/prólogo si son muy largos.</p>
           </div>
         </div>
       </div>

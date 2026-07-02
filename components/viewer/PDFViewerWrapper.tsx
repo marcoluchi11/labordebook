@@ -1,23 +1,34 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ViewerLoading } from './ViewerLoading'
 
-type PDFViewerType = React.ComponentType<{ bookId: string; bookTitle?: string }>
+type PDFViewerType = React.ComponentType<{
+  bookId: string
+  bookTitle?: string
+  preview?: boolean
+  bookSlug?: string
+}>
 
-export function PDFViewerWrapper({ bookId, bookTitle }: { bookId: string; bookTitle?: string }) {
+interface Props {
+  bookId: string
+  bookTitle?: string
+  preview?: boolean
+  bookSlug?: string
+}
+
+export function PDFViewerWrapper({ bookId, bookTitle, preview, bookSlug }: Props) {
   const [Viewer, setViewer] = useState<PDFViewerType | null>(null)
 
   useEffect(() => {
-    import('./PDFViewer').then(m => setViewer(() => m.PDFViewer))
+    import('./PDFViewer')
+      .then(m => setViewer(() => m.PDFViewer))
+      .catch(err => console.error('[PDFViewerWrapper] Error cargando PDFViewer:', err))
   }, [])
 
   if (!Viewer) {
-    return (
-      <div className="fixed inset-0 bg-gray-900 flex items-center justify-center text-gray-400">
-        Cargando libro…
-      </div>
-    )
+    return <ViewerLoading />
   }
 
-  return <Viewer bookId={bookId} bookTitle={bookTitle} />
+  return <Viewer bookId={bookId} bookTitle={bookTitle} preview={preview} bookSlug={bookSlug} />
 }

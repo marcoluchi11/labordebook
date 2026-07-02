@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { ViewerLoading } from './ViewerLoading'
 
 interface Props {
   bookId: string
   bookTitle?: string
+  preview?: boolean
+  bookSlug?: string
 }
 
-export function PDFViewer({ bookId, bookTitle }: Props) {
+export function PDFViewer({ bookId, bookTitle, preview = false, bookSlug }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef    = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,14 +22,18 @@ export function PDFViewer({ bookId, bookTitle }: Props) {
   const [scale,        setScale]        = useState(100)
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState<string | null>(null)
-  const [showTutorial, setShowTutorial] = useState(false)
+  const [showTutorial,     setShowTutorial]     = useState(false)
+  const [paywallDismissed, setPaywallDismissed] = useState(false)
+
+  const buyHref = bookSlug ? `/books/${bookSlug}` : '/'
+  const showPaywall = preview && numPages > 0 && currentPage >= numPages && !paywallDismissed
 
   useEffect(() => {
     const ac = new AbortController()
 
     async function init() {
       try {
-        const res = await fetch(`/api/viewer/${bookId}/session`)
+        const res = await fetch(`/api/${preview ? 'preview' : 'viewer'}/${bookId}/session`)
         if (!res.ok) throw new Error('No autorizado')
         const { url } = await res.json()
 
@@ -49,7 +56,11 @@ export function PDFViewer({ bookId, bookTitle }: Props) {
           eventBus,
           linkService,
           removePageBorders: false,
-          textLayerMode: 0, // disabled — prevents text selection / copy
+          textLayerMode: 0,
+          // pdf.js caps canvas resolution on iOS/Android to ~5.2M px by default,
+          // rendering below native devicePixelRatio and making pages look blurry
+          // on phones/tablets. -1 removes the cap (unbounded, matches full DPR).
+          maxCanvasPixels: -1,
         })
         linkService.setViewer(pdfViewer)
         pdfViewerRef.current = pdfViewer
@@ -86,7 +97,7 @@ export function PDFViewer({ bookId, bookTitle }: Props) {
 
     init()
     return () => ac.abort()
-  }, [bookId])
+  }, [bookId, preview])
 
   function dismissTutorial() {
     setShowTutorial(false)
@@ -143,11 +154,7 @@ export function PDFViewer({ bookId, bookTitle }: Props) {
     <div className="fixed inset-0 flex flex-col bg-gray-900 no-select no-print">
 
       {/* Loading overlay */}
-      {loading && (
-        <div className="absolute inset-0 z-40 bg-gray-900 flex items-center justify-center text-gray-400">
-          Cargando libro…
-        </div>
-      )}
+      {loading && <ViewerLoading className="absolute inset-0 z-40" />}
 
       {/* Error overlay */}
       {error && (
@@ -173,6 +180,48 @@ export function PDFViewer({ bookId, bookTitle }: Props) {
             >
               Entendido
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Preview mode banner */}
+      {preview && !loading && !error && (
+        <div
+          className="shrink-0 bg-amber-400 text-gray-900 text-xs sm:text-sm font-medium flex items-center justify-between gap-2 px-3 py-2"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)' }}
+        >
+          <span>Estás leyendo una muestra gratuita</span>
+          <Link
+            href={buyHref}
+            className="shrink-0 min-h-[44px] flex items-center bg-gray-900 text-white text-xs font-semibold px-3 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Comprar libro
+          </Link>
+        </div>
+      )}
+
+      {showPaywall && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
+          <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <p className="text-2xl mb-3">🔒</p>
+            <h2 className="text-white font-semibold text-lg mb-3">Llegaste al final de la muestra</h2>
+            <p className="text-gray-300 text-sm leading-relaxed mb-5">
+              Comprá el libro para seguir leyendo online y descargar tu copia.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <Link
+                href={buyHref}
+                className="bg-white text-gray-900 font-medium px-6 py-2.5 rounded-lg w-full hover:bg-gray-100 transition-colors"
+              >
+                Comprar libro completo
+              </Link>
+              <button
+                onClick={() => setPaywallDismissed(true)}
+                className="text-gray-400 text-sm hover:text-gray-200 transition-colors py-1"
+              >
+                Seguir viendo la muestra
+              </button>
+            </div>
           </div>
         </div>
       )}

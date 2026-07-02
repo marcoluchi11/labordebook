@@ -14,6 +14,7 @@ export interface Database {
           price: number
           cover_url: string | null
           preview_pdf_url: string | null
+          preview_pages: number
           pdf_path: string | null
           epub_path: string | null
           page_count: number | null
@@ -35,6 +36,7 @@ export interface Database {
           price: number
           cover_url?: string | null
           preview_pdf_url?: string | null
+          preview_pages?: number
           pdf_path?: string | null
           epub_path?: string | null
           page_count?: number | null
@@ -56,6 +58,7 @@ export interface Database {
           price?: number
           cover_url?: string | null
           preview_pdf_url?: string | null
+          preview_pages?: number
           pdf_path?: string
           epub_path?: string | null
           page_count?: number | null

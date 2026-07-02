@@ -15,7 +15,7 @@ const viewerCsp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "connect-src 'self' https://*.supabase.co",
-  "worker-src blob:",
+  "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
 ].join('; ')

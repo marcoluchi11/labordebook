@@ -13,6 +13,7 @@ const updateSchema = z.object({
   publisher: z.string().min(1).optional(),
   published_year: z.number().int().min(1000).max(2100).optional(),
   page_count: z.number().int().min(1).optional(),
+  preview_pages: z.number().int().min(1).optional(),
   tags: z.array(z.string()).optional(),
   is_published: z.boolean().optional(),
   cover_url: z.string().optional(),

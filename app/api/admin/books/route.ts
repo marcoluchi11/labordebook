@@ -13,6 +13,7 @@ const createSchema = z.object({
   publisher: z.string().min(1),
   published_year: z.number().int().min(1000).max(2100),
   page_count: z.number().int().min(1),
+  preview_pages: z.number().int().min(1).default(15),
   tags: z.array(z.string()).default([]),
   is_published: z.boolean().default(false),
   pdf_path: z.string().optional(),

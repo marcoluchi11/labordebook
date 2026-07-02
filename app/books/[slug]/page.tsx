@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { Book } from '@/components/ui/book'
 import { AddToCartButton } from '@/components/catalog/AddToCartButton'
-import { BookOpen, Globe, Building2, Calendar, FileText, BookMarked } from 'lucide-react'
+import { BookOpen, Globe, Building2, Calendar, FileText, BookMarked, BookOpenText } from 'lucide-react'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -121,6 +121,14 @@ export default async function BookPage({ params }: Props) {
               coverUrl: book.cover_url,
             }}
           />
+
+          <Link
+            href={`/read/preview/${book.id}`}
+            className="mt-3 inline-flex items-center gap-2 text-gray-700 font-medium border border-gray-300 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <BookOpenText className="h-4 w-4" />
+            Leer muestra gratis
+          </Link>
 
           <p className="text-xs text-gray-400 mt-3">
             Recibirás acceso inmediato por email después del pago.
