@@ -216,6 +216,36 @@ export interface Database {
           }
         ]
       }
+      newsletter_subscribers: {
+        Row: {
+          id: string
+          email: string
+          name: string | null
+          subscribed_at: string
+          unsubscribed_at: string | null
+          unsubscribe_token: string
+          is_active: boolean
+        }
+        Insert: {
+          id?: string
+          email: string
+          name?: string | null
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+          unsubscribe_token?: string
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string | null
+          subscribed_at?: string
+          unsubscribed_at?: string | null
+          unsubscribe_token?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           id: string

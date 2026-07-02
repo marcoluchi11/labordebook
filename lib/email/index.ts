@@ -121,3 +121,59 @@ export async function sendGiftSentConfirmationEmail(params: SendGiftConfirmation
     html,
   })
 }
+
+export interface SendNewsletterEmailParams {
+  subscriberEmail:  string
+  subscriberName?:  string
+  subject:          string
+  bookData?:        { title: string; author: string; price: number; cover_url: string | null; slug: string }
+  unsubscribeToken: string
+}
+
+export async function sendNewsletterEmail(params: SendNewsletterEmailParams) {
+  const { subscriberEmail, subscriberName, subject, bookData, unsubscribeToken } = params
+  const firstName = subscriberName ? `, ${subscriberName.split(' ')[0]}` : ''
+  const unsubscribeUrl = `${APP_URL}/api/newsletter/unsubscribe?token=${unsubscribeToken}`
+
+  const bookSection = bookData ? `
+    <div style="border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; margin: 24px 0;">
+      ${bookData.cover_url ? `<img src="${bookData.cover_url}" alt="${bookData.title}" style="width: 100%; height: 200px; object-fit: cover;">` : ''}
+      <div style="padding: 20px;">
+        <p style="font-size: 18px; font-weight: bold; color: #111; margin: 0 0 4px;">${bookData.title}</p>
+        <p style="font-size: 14px; color: #666; margin: 0 0 16px;">${bookData.author}</p>
+        <p style="font-size: 20px; color: #111; font-weight: bold; margin: 0 0 16px;">
+          $${bookData.price.toLocaleString('es-AR')}
+        </p>
+        <a href="${APP_URL}/books/${bookData.slug}"
+           style="display: inline-block; background: #111; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-size: 14px;">
+          Ver libro →
+        </a>
+      </div>
+    </div>` : ''
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="font-family: Georgia, serif; background: #fafafa; margin: 0; padding: 24px;">
+  <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+    <div style="padding: 32px;">
+      <p style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px;">Laborde Editorial</p>
+      <h1 style="font-size: 22px; color: #111; margin: 0 0 8px;">${subject}</h1>
+      <p style="color: #555; font-size: 15px; margin: 0 0 8px;">Hola${firstName}.</p>
+      ${bookSection}
+      <p style="color: #aaa; font-size: 11px; margin-top: 32px; border-top: 1px solid #f0f0f0; padding-top: 16px;">
+        Recibiste este email porque te suscribiste a las novedades de Laborde Editorial.<br>
+        <a href="${unsubscribeUrl}" style="color: #aaa;">Darme de baja</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  await resend.emails.send({ from: FROM, to: subscriberEmail, subject, html })
+}
