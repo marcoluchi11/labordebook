@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { sendNewsletterEmail } from '@/lib/email'
 
 const schema = z.object({
@@ -8,7 +9,19 @@ const schema = z.object({
   bookId:  z.string().uuid().optional(),
 })
 
+async function requireAdmin(supabase: ReturnType<typeof createServiceRoleClient>) {
+  const supabaseAuth = await createClient()
+  const { data: { user } } = await supabaseAuth.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase.from('admin_users').select('id').eq('id', user.id).single()
+  return data ? user : null
+}
+
 export async function POST(request: NextRequest) {
+  const supabase = createServiceRoleClient()
+  const admin = await requireAdmin(supabase)
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const body = await request.json().catch(() => ({}))
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
@@ -16,7 +29,6 @@ export async function POST(request: NextRequest) {
   }
 
   const { subject, bookId } = parsed.data
-  const supabase = createServiceRoleClient()
 
   // Fetch active subscribers
   const { data: subscribers, error: subError } = await supabase

@@ -33,6 +33,9 @@ async function requireAdmin(supabase: ReturnType<typeof createServiceRoleClient>
 
 export async function GET() {
   const supabase = createServiceRoleClient()
+  const admin = await requireAdmin(supabase)
+  if (!admin) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
   const { data: books } = await supabase.from('books').select('*').order('created_at', { ascending: false })
   return NextResponse.json(books ?? [])
 }
