@@ -21,6 +21,7 @@ export function PDFViewer({ bookId, bookTitle, preview = false, bookSlug }: Prop
   const [numPages,     setNumPages]     = useState(0)
   const [scale,        setScale]        = useState(100)
   const [loading,      setLoading]      = useState(true)
+  const [loadingProgress, setLoadingProgress] = useState<number | null>(null)
   const [error,        setError]        = useState<string | null>(null)
   const [showTutorial,     setShowTutorial]     = useState(false)
   const [paywallDismissed, setPaywallDismissed] = useState(false)
@@ -33,6 +34,7 @@ export function PDFViewer({ bookId, bookTitle, preview = false, bookSlug }: Prop
 
     async function init() {
       try {
+        setLoadingProgress(null)
         const res = await fetch(`/api/${preview ? 'preview' : 'viewer'}/${bookId}/session`)
         if (!res.ok) throw new Error('No autorizado')
         const { url } = await res.json()
@@ -72,7 +74,13 @@ export function PDFViewer({ bookId, bookTitle, preview = false, bookSlug }: Prop
           setScale(Math.round(evt.scale * 100))
         })
 
-        const pdfDoc = await pdfjsLib.getDocument({ url, withCredentials: false }).promise
+        const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false, disableRange: true, disableStream: true })
+        loadingTask.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+          if (total > 0) {
+            setLoadingProgress(Math.min(100, Math.round((loaded / total) * 100)))
+          }
+        }
+        const pdfDoc = await loadingTask.promise
         if (ac.signal.aborted) return
 
         setNumPages(pdfDoc.numPages)
@@ -154,7 +162,7 @@ export function PDFViewer({ bookId, bookTitle, preview = false, bookSlug }: Prop
     <div className="fixed inset-0 flex flex-col bg-gray-900 no-select no-print">
 
       {/* Loading overlay */}
-      {loading && <ViewerLoading className="absolute inset-0 z-40" />}
+      {loading && <ViewerLoading className="absolute inset-0 z-40" progress={loadingProgress} />}
 
       {/* Error overlay */}
       {error && (
