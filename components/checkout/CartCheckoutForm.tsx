@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState } from 'react'
 import { useCart } from '@/components/cart/CartContext'
+import { CHECKOUT_DISABLED } from '@/lib/config/checkout'
 
 const schema = z.object({
   name: z.string().min(2, 'Ingresá tu nombre completo'),
@@ -51,6 +52,8 @@ export function CartCheckoutForm({ bookIds, total }: Props) {
   const isGift = watch('isGift')
 
   async function onSubmit(data: FormData) {
+    if (CHECKOUT_DISABLED) return
+
     setLoading(true)
     setError(null)
 

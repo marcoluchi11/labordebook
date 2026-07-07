@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState } from 'react'
 import type { Database } from '@/lib/supabase/types'
+import { CHECKOUT_DISABLED } from '@/lib/config/checkout'
 
 type Book = Database['public']['Tables']['books']['Row']
 
@@ -51,6 +52,8 @@ export function CheckoutForm({ book }: CheckoutFormProps) {
   const isGift = watch('isGift')
 
   async function onSubmit(data: FormData) {
+    if (CHECKOUT_DISABLED) return
+
     setLoading(true)
     setError(null)
 
