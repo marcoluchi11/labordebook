@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { createServiceRoleClient } from '@/lib/supabase/server'
 import { DeleteBookButton } from '@/components/admin/DeleteBookButton'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminBooksPage() {
   const supabase = createServiceRoleClient()
   const { data: books } = await supabase

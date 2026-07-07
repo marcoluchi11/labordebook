@@ -1,5 +1,7 @@
 import { createServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminPurchasesPage() {
   const supabase = createServiceRoleClient()
 

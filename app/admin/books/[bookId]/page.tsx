@@ -6,6 +6,8 @@ interface Props {
   params: Promise<{ bookId: string }>
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function EditBookPage({ params }: Props) {
   const { bookId } = await params
   const supabase = createServiceRoleClient()
